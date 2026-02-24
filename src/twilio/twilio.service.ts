@@ -1,6 +1,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { Twilio } from 'twilio';
+import axios from 'axios';
 
 @Injectable()
 export class TwilioService {
@@ -14,12 +15,16 @@ export class TwilioService {
   }
 
   /**
-   * Lista plantillas aprobadas de WhatsApp en Twilio usando Content API
+   * Lista plantillas aprobadas de WhatsApp en Twilio usando Content API vía HTTP
    */
   async listApprovedWATemplates() {
-    // https://www.twilio.com/docs/content-api/api/template-resource#list-all-templates
-    // No requiere serviceSid, solo el Content API
-    return this.client.content.v1.whatsappTemplates.list({ status: 'approved' });
+    const accountSid = process.env.TWILIO_ACCOUNT_SID!;
+    const authToken = process.env.TWILIO_AUTH_TOKEN!;
+    const url = `https://content.twilio.com/v1/WhatsApp/Templates?Status=approved`;
+    const response = await axios.get(url, {
+      auth: { username: accountSid, password: authToken }
+    });
+    return response.data.templates || [];
   }
 
   async sendWhatsAppTemplate({
