@@ -11,9 +11,8 @@ export class TwilioController {
    * POST /api/twilio/wa-templates { serviceSid }
    */
   @Post('wa-templates')
-  async getApprovedWATemplates(@Body('serviceSid') serviceSid: string) {
-    if (!serviceSid) return { error: 'serviceSid requerido' };
-    return this.twilioService.listApprovedWATemplates(serviceSid);
+  async getApprovedWATemplates() {
+    return this.twilioService.listApprovedWATemplates();
   }
 
   @Post('send-wa-template')

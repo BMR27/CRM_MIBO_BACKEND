@@ -14,12 +14,12 @@ export class TwilioService {
   }
 
   /**
-   * Lista plantillas aprobadas de WhatsApp en Twilio
+   * Lista plantillas aprobadas de WhatsApp en Twilio usando Content API
    */
-  async listApprovedWATemplates(serviceSid: string) {
+  async listApprovedWATemplates() {
     // https://www.twilio.com/docs/content-api/api/template-resource#list-all-templates
-    // serviceSid: SID de Messaging Service (de tu cuenta Twilio)
-    return this.client.messaging.v1.services(serviceSid).templates.list({status: 'approved'});
+    // No requiere serviceSid, solo el Content API
+    return this.client.content.v1.whatsappTemplates.list({ status: 'approved' });
   }
 
   async sendWhatsAppTemplate({
