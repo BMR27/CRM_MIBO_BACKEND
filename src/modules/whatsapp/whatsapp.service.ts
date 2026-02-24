@@ -430,20 +430,60 @@ export class WhatsappService {
   }> {
     try {
       const cleanPhone = this.normalizePhoneNumber(phoneNumber);
+      // 1. Find or create contact
+      const contact = await this.contactsService.findOrCreateByPhone(cleanPhone);
+      // 2. Find or create conversation
+      let conversation = null;
+      const conversations = await this.conversationsService.findByContact(contact.id);
+      if (conversations && conversations.length > 0) {
+        conversation = conversations[0];
+      } else {
+        conversation = await this.conversationsService.create({
+          contact_id: contact.id,
+        } as any);
+      }
 
-      // Para producción (fuera de ventana 24h) WhatsApp exige templates.
+      let sendResult;
+      let content = templateName;
+      let messageType = 'text';
+      let whatsappMessageId = undefined;
+
       if (this.cloudAccessToken && this.cloudPhoneNumberId) {
         const parameters = this.normalizeTemplateVariables(variables);
-        return this.sendCloudTemplateMessage(cleanPhone, templateName, parameters);
+        sendResult = await this.sendCloudTemplateMessage(cleanPhone, templateName, parameters);
+        whatsappMessageId = sendResult.whatsapp_message_id;
+        // Compose a readable content for local DB (for UI display)
+        if (parameters.length > 0) {
+          content = `${templateName} ${parameters.join(' ')}`;
+        }
+        messageType = 'template';
+      } else {
+        // Fallback (Twilio o no configurado): se envía como texto plano.
+        let params = this.normalizeTemplateVariables(variables);
+        if (params.length > 0) {
+          content = `${templateName} ${params.join(' ')}`;
+        }
+        sendResult = await this.sendMessage(phoneNumber, content);
+        whatsappMessageId = sendResult.whatsapp_message_id;
+        messageType = 'text';
       }
 
-      // Fallback (Twilio o no configurado): se envía como texto plano.
-      let message = templateName;
-      const params = this.normalizeTemplateVariables(variables);
-      if (params.length > 0) {
-        message = `${templateName} ${params.join(' ')}`;
-      }
-      return this.sendMessage(phoneNumber, message);
+      // 3. Register message in local DB
+      await this.messagesService.create({
+        conversation_id: conversation.id,
+        sender_type: 'user',
+        sender_id: null, // Optionally set to the user ID if available
+        content,
+        message_type: messageType,
+        whatsapp_message_id: whatsappMessageId,
+        is_from_whatsapp: false,
+        metadata: {
+          template_name: templateName,
+          parameters: variables,
+        },
+      });
+
+      return sendResult;
     } catch (error: any) {
       this.logger.error('Error sending template message:', error);
       return {
