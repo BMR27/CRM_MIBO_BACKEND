@@ -1,11 +1,4 @@
-  /**
-   * Lista plantillas aprobadas de WhatsApp en Twilio
-   */
-  async listApprovedWATemplates(serviceSid: string) {
-    // https://www.twilio.com/docs/content-api/api/template-resource#list-all-templates
-    // serviceSid: SID de Messaging Service (de tu cuenta Twilio)
-    return this.client.messaging.v1.services(serviceSid).templates.list({status: 'approved'});
-  }
+
 import { Injectable } from '@nestjs/common';
 import { Twilio } from 'twilio';
 
@@ -18,6 +11,15 @@ export class TwilioService {
       process.env.TWILIO_ACCOUNT_SID!,
       process.env.TWILIO_AUTH_TOKEN!
     );
+  }
+
+  /**
+   * Lista plantillas aprobadas de WhatsApp en Twilio
+   */
+  async listApprovedWATemplates(serviceSid: string) {
+    // https://www.twilio.com/docs/content-api/api/template-resource#list-all-templates
+    // serviceSid: SID de Messaging Service (de tu cuenta Twilio)
+    return this.client.messaging.v1.services(serviceSid).templates.list({status: 'approved'});
   }
 
   async sendWhatsAppTemplate({
