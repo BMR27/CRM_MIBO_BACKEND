@@ -1,0 +1,1 @@
+{"version":3,"file":"create-conversation.dto.d.ts","sourceRoot":"","sources":["../../../../src/modules/conversations/dto/create-conversation.dto.ts"],"names":[],"mappings":"AAEA,qBAAa,qBAAqB;IAEhC,UAAU,EAAE,MAAM,CAAC;IAInB,iBAAiB,CAAC,EAAE,MAAM,CAAC;IAI3B,MAAM,CAAC,EAAE,MAAM,CAAC;IAIhB,QAAQ,CAAC,EAAE,MAAM,CAAC;IAIlB,KAAK,CAAC,EAAE,MAAM,CAAC;CAChB"}

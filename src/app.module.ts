@@ -13,6 +13,7 @@ import { OrdersModule } from './modules/orders/orders.module'
 import { MacrosModule } from './modules/macros/macros.module'
 import { ConversationTagsModule } from './modules/conversation-tags/conversation-tags.module'
 import { WhatsappModule } from './modules/whatsapp/whatsapp.module'
+import { TwilioModule } from './twilio/twilio.module'
 
 @Module({
   imports: [
@@ -79,6 +80,7 @@ import { WhatsappModule } from './modules/whatsapp/whatsapp.module'
     MacrosModule,
     ConversationTagsModule,
     WhatsappModule,
+    TwilioModule,
   ],
   controllers: [],
   providers: [

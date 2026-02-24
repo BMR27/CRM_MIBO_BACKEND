@@ -1,0 +1,1 @@
+{"version":3,"file":"conversation-tag.entity.d.ts","sourceRoot":"","sources":["../../../../src/modules/conversation-tags/entities/conversation-tag.entity.ts"],"names":[],"mappings":"AAQA,OAAO,EAAE,YAAY,EAAE,MAAM,kDAAkD,CAAC;AAEhF,qBACa,eAAe;IAE1B,EAAE,EAAE,MAAM,CAAC;IAGX,eAAe,EAAE,MAAM,CAAC;IAGxB,GAAG,EAAE,MAAM,CAAC;IAGZ,UAAU,EAAE,IAAI,CAAC;IAMjB,YAAY,EAAE,YAAY,CAAC;CAC5B"}
