@@ -9,12 +9,18 @@ async function bootstrap() {
   // Set global prefix
   app.setGlobalPrefix('api');
   // Enable CORS
-  // CORS completamente abierto para pruebas (¡no usar en producción final!)
+  // CORS seguro: solo permite localhost y el dominio de frontend de producción
   app.enableCors({
-    origin: true,
+    origin: [
+      'http://localhost:3000',
+      'https://crmmibofrontend-production.up.railway.app',
+    ],
     methods: 'GET,POST,PATCH,DELETE,OPTIONS',
     credentials: true,
   });
+
+  // Si necesitas abrir CORS para pruebas, comenta el bloque anterior y descomenta esto:
+  // app.enableCors({ origin: true, methods: 'GET,POST,PATCH,DELETE,OPTIONS', credentials: true });
 
   // Swagger Setup
   const config = new DocumentBuilder()
