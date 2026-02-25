@@ -38,16 +38,18 @@ export class TwilioService {
     templateSid: string;
     variables?: string[];
   }) {
+    // Mapear variables a formato {"1": "valor1", "2": "valor2", ...}
+    const contentVariables = {} as Record<string, string>;
+    if (Array.isArray(variables)) {
+      variables.forEach((val, idx) => {
+        contentVariables[(idx + 1).toString()] = val;
+      });
+    }
     return this.client.messages.create({
-      to: `whatsapp:${to}`,
-      from: `whatsapp:${from}`,
+      to: to.startsWith('whatsapp:') ? to : `whatsapp:${to}`,
+      from: from.startsWith('whatsapp:') ? from : `whatsapp:${from}`,
       contentSid: templateSid,
-      contentVariables: JSON.stringify(
-        variables.reduce((acc, val, idx) => {
-          acc[`1`] = val; // para una variable, puedes expandir para más
-          return acc;
-        }, {} as Record<string, string>)
-      ),
+      contentVariables: JSON.stringify(contentVariables),
     });
   }
 }
