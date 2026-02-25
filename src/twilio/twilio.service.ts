@@ -49,7 +49,7 @@ export class TwilioService {
       to: to.startsWith('whatsapp:') ? to : `whatsapp:${to}`,
       from: from.startsWith('whatsapp:') ? from : `whatsapp:${from}`,
       contentSid: contentSid,
-      contentVariables: contentVariables, // Debe ser objeto, no string
+      contentVariables: JSON.stringify(contentVariables), // Debe ser string para el SDK
     };
     // Log para depuración
     // eslint-disable-next-line no-console
