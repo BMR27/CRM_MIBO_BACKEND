@@ -11,7 +11,7 @@ async function bootstrap() {
   // Enable CORS
   app.enableCors({
     origin: [
-      process.env.FRONTEND_URL || 'http://localhost:3000',
+      'http://localhost:3000',
       'https://crmmibofrontend-production.up.railway.app',
     ],
     methods: 'GET,POST,PATCH,DELETE,OPTIONS',
