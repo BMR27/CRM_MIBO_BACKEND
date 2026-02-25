@@ -1,3 +1,8 @@
+  @Get(':id/messages')
+  @UseGuards(JwtAuthGuard)
+  async getMessages(@Param('id') id: string) {
+    return this.conversationsService.getMessagesByConversation(id);
+  }
 import {
   Controller,
   Get,

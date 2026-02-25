@@ -1,4 +1,11 @@
-﻿import { Injectable } from '@nestjs/common';
+﻿  async getMessagesByConversation(conversationId: string) {
+    const conv = await this.conversationRepository.findOne({
+      where: { id: conversationId },
+      relations: ['messages'],
+    });
+    return conv?.messages || [];
+  }
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Conversation } from './entities/conversation.entity';
