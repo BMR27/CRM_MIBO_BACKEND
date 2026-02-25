@@ -1,10 +1,4 @@
-﻿  async getMessagesByConversation(conversationId: string) {
-    const conv = await this.conversationRepository.findOne({
-      where: { id: conversationId },
-      relations: ['messages'],
-    });
-    return conv?.messages || [];
-  }
+﻿
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -18,6 +12,14 @@ export class ConversationsService {
     @InjectRepository(Conversation)
     private conversationRepository: Repository<Conversation>,
   ) {}
+
+  async getMessagesByConversation(conversationId: string) {
+    const conv = await this.conversationRepository.findOne({
+      where: { id: conversationId },
+      relations: ['messages'],
+    });
+    return conv?.messages || [];
+  }
 
   async create(createConversationDto: CreateConversationDto) {
     const conversation = this.conversationRepository.create(createConversationDto as any);

@@ -1,8 +1,4 @@
-  @Get(':id/messages')
-  @UseGuards(JwtAuthGuard)
-  async getMessages(@Param('id') id: string) {
-    return this.conversationsService.getMessagesByConversation(id);
-  }
+
 import {
   Controller,
   Get,
@@ -25,6 +21,12 @@ import { Roles } from '../../decorators/roles.decorator';
 export class ConversationsController {
   constructor(private readonly conversationsService: ConversationsService) {}
 
+  @Get(':id/messages')
+  @UseGuards(JwtAuthGuard)
+  async getMessages(@Param('id') id: string) {
+    return this.conversationsService.getMessagesByConversation(id);
+  }
+
   @Post()
   @UseGuards(JwtAuthGuard)
   create(@Body(ValidationPipe) createConversationDto: CreateConversationDto) {
@@ -36,7 +38,6 @@ export class ConversationsController {
   findAll(@Req() request: any) {
     const user = request.user;
     const userRole = user?.role;
-    // Si es agente, filtra solo conversaciones asignadas
     if (userRole === 'agent') {
       return this.conversationsService.findByAssignedAgent(user.id);
     }
