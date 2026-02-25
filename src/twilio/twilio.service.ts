@@ -30,12 +30,12 @@ export class TwilioService {
   async sendWhatsAppTemplate({
     to,
     from,
-    templateSid,
+    contentSid,
     variables = [],
   }: {
     to: string;
     from: string;
-    templateSid: string;
+    contentSid: string;
     variables?: string[];
   }) {
     // Mapear variables a formato {"1": "valor1", "2": "valor2", ...}
@@ -48,7 +48,7 @@ export class TwilioService {
     return this.client.messages.create({
       to: to.startsWith('whatsapp:') ? to : `whatsapp:${to}`,
       from: from.startsWith('whatsapp:') ? from : `whatsapp:${from}`,
-      contentSid: templateSid,
+      contentSid: contentSid,
       contentVariables: JSON.stringify(contentVariables),
     });
   }

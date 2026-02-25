@@ -17,7 +17,7 @@ export class TwilioController {
 
   @Post('send-wa-template')
   async sendWATemplate(@Body() body: any) {
-    // body: { to, from, templateSid, variables }
+    // body: { to, from, contentSid, variables }
     return this.twilioService.sendWhatsAppTemplate(body);
   }
 }
