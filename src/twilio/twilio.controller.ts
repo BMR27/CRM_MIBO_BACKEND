@@ -2,7 +2,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { TwilioService } from './twilio.service';
 
-@Controller('api/twilio')
+@Controller('twilio')
 export class TwilioController {
   constructor(private readonly twilioService: TwilioService) {}
 
