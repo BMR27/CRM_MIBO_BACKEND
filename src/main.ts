@@ -12,7 +12,7 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:3000',
-      'https://crmmibofrontend-production.up.railway.app',
+        'https://crmmibofrontend-production.up.railway.app',
     ],
     methods: 'GET,POST,PATCH,DELETE,OPTIONS',
     credentials: true,
