@@ -45,11 +45,15 @@ export class TwilioService {
         contentVariables[(idx + 1).toString()] = val;
       });
     }
-    return this.client.messages.create({
+    const payload = {
       to: to.startsWith('whatsapp:') ? to : `whatsapp:${to}`,
       from: from.startsWith('whatsapp:') ? from : `whatsapp:${from}`,
       contentSid: contentSid,
       contentVariables: JSON.stringify(contentVariables),
-    });
+    };
+    // Log para depuración
+    // eslint-disable-next-line no-console
+    console.log('Twilio sendWhatsAppTemplate payload:', payload);
+    return this.client.messages.create(payload);
   }
 }
