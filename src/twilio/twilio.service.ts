@@ -56,4 +56,41 @@ export class TwilioService {
     console.log('Twilio sendWhatsAppTemplate payload:', payload);
     return this.client.messages.create(payload);
   }
+
+  /**
+   * Envía mensaje WhatsApp usando ContentSid y ContentVariables exactamente como el cURL
+   */
+  async sendWhatsAppTemplateViaHttp({
+    to,
+    from,
+    contentSid,
+    variables = [],
+  }: {
+    to: string;
+    from: string;
+    contentSid: string;
+    variables?: string[];
+  }) {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID!;
+    const authToken = process.env.TWILIO_AUTH_TOKEN!;
+    // Construir ContentVariables: {"1":"valor1", ...}
+    const contentVariables: Record<string, string> = {};
+    if (Array.isArray(variables)) {
+      variables.forEach((val, idx) => {
+        contentVariables[(idx + 1).toString()] = val;
+      });
+    }
+    const data = new URLSearchParams();
+    data.append('To', to.startsWith('whatsapp:') ? to : `whatsapp:${to}`);
+    data.append('From', from.startsWith('whatsapp:') ? from : `whatsapp:${from}`);
+    data.append('ContentSid', contentSid); // Respetar mayúsculas
+    data.append('ContentVariables', JSON.stringify(contentVariables));
+
+    const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+    const response = await axios.post(url, data, {
+      auth: { username: accountSid, password: authToken },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    });
+    return response.data;
+  }
 }
