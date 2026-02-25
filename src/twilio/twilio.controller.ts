@@ -17,6 +17,11 @@ export class TwilioController {
   @Post('send-wa-template')
   async sendWATemplate(@Body() body: any) {
     // body: { to, from, contentSid, variables }
+    // Usar el método HTTP si se envía contentSid (plantilla)
+    if (body.contentSid) {
+      return this.twilioService.sendWhatsAppTemplateViaHttp(body);
+    }
+    // Si no, usar el método normal (texto simple)
     return this.twilioService.sendWhatsAppTemplate(body);
   }
 
