@@ -1,5 +1,4 @@
-
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, Options } from '@nestjs/common';
 import { TwilioService } from './twilio.service';
 
 @Controller('twilio')
@@ -19,5 +18,10 @@ export class TwilioController {
   async sendWATemplate(@Body() body: any) {
     // body: { to, from, contentSid, variables }
     return this.twilioService.sendWhatsAppTemplate(body);
+  }
+
+  @Options('send-wa-template')
+  optionsSendWaTemplate() {
+    return {};
   }
 }
