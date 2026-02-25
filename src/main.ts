@@ -9,11 +9,9 @@ async function bootstrap() {
   // Set global prefix
   app.setGlobalPrefix('api');
   // Enable CORS
+  // CORS completamente abierto para pruebas (¡no usar en producción final!)
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-        'https://crmmibofrontend-production.up.railway.app',
-    ],
+    origin: true,
     methods: 'GET,POST,PATCH,DELETE,OPTIONS',
     credentials: true,
   });
