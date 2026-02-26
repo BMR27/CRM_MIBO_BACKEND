@@ -39,7 +39,7 @@ export class TwilioService {
     variables?: string[];
   }) {
     // Mapear variables a formato {"1": "valor1", "2": "valor2", ...}
-    const contentVariables = {} as Record<string, string>;
+    let contentVariables = {} as Record<string, string>;
     if (Array.isArray(variables)) {
       variables.forEach((val, idx) => {
         contentVariables[(idx + 1).toString()] = val;
