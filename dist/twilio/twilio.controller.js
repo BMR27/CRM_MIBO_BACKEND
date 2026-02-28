@@ -52,7 +52,7 @@ let TwilioController = class TwilioController {
             }
             await this.messagesService.create({
                 conversation_id: body.conversation_id,
-                sender_type: 'user',
+                sender_type: 'agent',
                 sender_id: body.sender_id || null,
                 content: sentText,
                 message_type: 'text',

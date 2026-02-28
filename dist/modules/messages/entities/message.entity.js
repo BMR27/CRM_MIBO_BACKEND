@@ -97,7 +97,7 @@ __decorate([
     __metadata("design:type", Date)
 ], Message.prototype, "updated_at", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => conversation_entity_1.Conversation, (conv) => conv.messages),
+    (0, typeorm_1.ManyToOne)(() => conversation_entity_1.Conversation, (conv) => conv.messages, { onDelete: 'CASCADE' }),
     (0, typeorm_1.JoinColumn)({ name: 'conversation_id' }),
     __metadata("design:type", conversation_entity_1.Conversation)
 ], Message.prototype, "conversation", void 0);

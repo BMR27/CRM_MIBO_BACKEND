@@ -3,7 +3,7 @@ import { User } from '../../users/entities/user.entity';
 export declare class Message {
     id: string;
     conversation_id: string;
-    sender_type: 'user' | 'contact';
+    sender_type: 'user' | 'contact' | 'agent';
     sender_id: string;
     content: string;
     message_type: 'text' | 'image' | 'document' | 'audio' | 'video' | 'sticker';

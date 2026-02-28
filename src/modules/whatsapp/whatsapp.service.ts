@@ -471,7 +471,7 @@ export class WhatsappService {
       // 3. Register message in local DB
       await this.messagesService.create({
         conversation_id: conversation.id,
-        sender_type: 'user',
+        sender_type: 'agent',
         sender_id: null, // Optionally set to the user ID if available
         content,
         message_type: messageType,

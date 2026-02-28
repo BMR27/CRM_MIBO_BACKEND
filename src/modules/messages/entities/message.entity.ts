@@ -19,7 +19,7 @@ export class Message {
   conversation_id: string;
 
   @Column({ type: 'varchar', length: 50 })
-  sender_type: 'user' | 'contact';
+  sender_type: 'user' | 'contact' | 'agent';
 
   @Column({ type: 'uuid', nullable: true })
   sender_id: string;
@@ -73,7 +73,7 @@ export class Message {
   @UpdateDateColumn()
   updated_at: Date;
 
-  @ManyToOne(() => Conversation, (conv) => conv.messages)
+  @ManyToOne(() => Conversation, (conv) => conv.messages, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'conversation_id' })
   conversation: Conversation;
 

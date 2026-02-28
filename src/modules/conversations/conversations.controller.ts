@@ -104,10 +104,12 @@ export class ConversationsController {
       if (!body.content) {
         throw new Error('El campo content es obligatorio')
       }
+      // Si el usuario autenticado es un agente, asignar sender_type 'agent'
+      const isAgent = req.user?.role === 'agent' || req.user?.isAgent
       const createMessageDto: CreateMessageDto = {
         ...body,
         conversation_id: conversationId,
-        sender_type: body.sender_type || 'user',
+        sender_type: isAgent ? 'agent' : (body.sender_type || 'user'),
         sender_id: body.sender_id || req.user?.id,
         content: body.content,
         message_type: body.message_type || 'text',

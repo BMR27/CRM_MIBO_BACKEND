@@ -27,8 +27,21 @@ export class ConversationsService {
   }
 
   async findAll() {
-    return this.conversationRepository.find({
+    const conversations = await this.conversationRepository.find({
       relations: ['contact', 'assigned_agent', 'messages'],
+    });
+    // Agregar campo last_message con el contenido del último mensaje
+    return conversations.map(conv => {
+      let lastMsg = null;
+      if (conv.messages && conv.messages.length > 0) {
+        // Ordenar por fecha si no está ordenado
+        const sorted = [...conv.messages].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        lastMsg = sorted[0].content;
+      }
+      return {
+        ...conv,
+        last_message: lastMsg,
+      };
     });
   }
 
