@@ -5,6 +5,7 @@ import { UpdateConversationDto } from './dto/update-conversation.dto';
 export declare class ConversationsService {
     private conversationRepository;
     constructor(conversationRepository: Repository<Conversation>);
+    getMessagesByConversation(conversationId: string): Promise<import("../messages/entities/message.entity").Message[]>;
     create(createConversationDto: CreateConversationDto): Promise<Conversation[]>;
     findAll(): Promise<Conversation[]>;
     findOne(id: string): Promise<Conversation>;
@@ -12,6 +13,8 @@ export declare class ConversationsService {
     findByAssignedAgent(agentId: string): Promise<Conversation[]>;
     assignAgent(conversationId: string, agentId: string): Promise<Conversation>;
     update(id: string, updateConversationDto: UpdateConversationDto): Promise<Conversation>;
-    remove(id: string): Promise<void>;
+    remove(id: string): Promise<{
+        success: boolean;
+    }>;
 }
 //# sourceMappingURL=conversations.service.d.ts.map

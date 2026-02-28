@@ -14,6 +14,7 @@ import { MacrosModule } from './modules/macros/macros.module'
 import { ConversationTagsModule } from './modules/conversation-tags/conversation-tags.module'
 import { WhatsappModule } from './modules/whatsapp/whatsapp.module'
 import { TwilioModule } from './twilio/twilio.module'
+import { CallsModule } from './modules/calls/calls.module'
 
 @Module({
   imports: [
@@ -81,6 +82,7 @@ import { TwilioModule } from './twilio/twilio.module'
     ConversationTagsModule,
     WhatsappModule,
     TwilioModule,
+    CallsModule,
   ],
   controllers: [],
   providers: [

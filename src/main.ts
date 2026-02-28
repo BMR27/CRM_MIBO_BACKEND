@@ -12,7 +12,7 @@ async function bootstrap() {
   // CORS seguro: solo permite localhost y el dominio de frontend de producción
   app.enableCors({
     origin: [
-      'http://localhost:3000',
+      'http://localhost:3002',
       'https://crmmibofrontend-production.up.railway.app',
     ],
     methods: 'GET,POST,PATCH,DELETE,OPTIONS',

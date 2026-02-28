@@ -15,16 +15,64 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TwilioController = void 0;
 const common_1 = require("@nestjs/common");
 const twilio_service_1 = require("./twilio.service");
+const messages_service_1 = require("../modules/messages/messages.service");
 let TwilioController = class TwilioController {
-    constructor(twilioService) {
+    constructor(twilioService, messagesService) {
         this.twilioService = twilioService;
+        this.messagesService = messagesService;
+    }
+    /**
+     * Endpoint para obtener plantillas aprobadas de WhatsApp en Twilio
+     * POST /api/twilio/wa-templates { serviceSid }
+     */
+    async getApprovedWATemplates() {
+        return this.twilioService.listApprovedWATemplates();
     }
     async sendWATemplate(body) {
-        // body: { to, from, templateSid, variables }
-        return this.twilioService.sendWhatsAppTemplate(body);
+        // body: { to, from, contentSid, variables, conversation_id, sender_id }
+        let twilioResult;
+        if (body.contentSid) {
+            twilioResult = await this.twilioService.sendWhatsAppTemplateViaHttp(body);
+        }
+        else {
+            twilioResult = await this.twilioService.sendWhatsAppTemplate(body);
+        }
+        // Registrar mensaje en la conversación si se provee conversation_id
+        if (body.conversation_id) {
+            // Obtener el texto real enviado por Twilio
+            let sentText = '';
+            if (twilioResult && twilioResult.body) {
+                sentText = twilioResult.body;
+            }
+            else if (twilioResult && twilioResult.message && twilioResult.message.body) {
+                sentText = twilioResult.message.body;
+            }
+            else {
+                sentText = body.variables && body.variables.length > 0 ? body.variables[0] : 'Plantilla enviada';
+            }
+            await this.messagesService.create({
+                conversation_id: body.conversation_id,
+                sender_type: 'user',
+                sender_id: body.sender_id || null,
+                content: sentText,
+                message_type: 'text',
+                is_from_whatsapp: true,
+                metadata: { twilio: twilioResult },
+            });
+        }
+        return { success: true, twilio: twilioResult };
+    }
+    optionsSendWaTemplate() {
+        return {};
     }
 };
 exports.TwilioController = TwilioController;
+__decorate([
+    (0, common_1.Post)('wa-templates'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], TwilioController.prototype, "getApprovedWATemplates", null);
 __decorate([
     (0, common_1.Post)('send-wa-template'),
     __param(0, (0, common_1.Body)()),
@@ -32,8 +80,15 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], TwilioController.prototype, "sendWATemplate", null);
+__decorate([
+    (0, common_1.Options)('send-wa-template'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], TwilioController.prototype, "optionsSendWaTemplate", null);
 exports.TwilioController = TwilioController = __decorate([
-    (0, common_1.Controller)('api/twilio'),
-    __metadata("design:paramtypes", [twilio_service_1.TwilioService])
+    (0, common_1.Controller)('twilio'),
+    __metadata("design:paramtypes", [twilio_service_1.TwilioService,
+        messages_service_1.MessagesService])
 ], TwilioController);
 //# sourceMappingURL=twilio.controller.js.map

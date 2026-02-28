@@ -6,20 +6,15 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TwilioModule = void 0;
+exports.CallsModule = void 0;
 const common_1 = require("@nestjs/common");
-const twilio_service_1 = require("./twilio.service");
-const twilio_controller_1 = require("./twilio.controller");
-const messages_module_1 = require("../modules/messages/messages.module");
-let TwilioModule = class TwilioModule {
+const calls_controller_1 = require("./calls.controller");
+let CallsModule = class CallsModule {
 };
-exports.TwilioModule = TwilioModule;
-exports.TwilioModule = TwilioModule = __decorate([
+exports.CallsModule = CallsModule;
+exports.CallsModule = CallsModule = __decorate([
     (0, common_1.Module)({
-        imports: [messages_module_1.MessagesModule],
-        providers: [twilio_service_1.TwilioService],
-        controllers: [twilio_controller_1.TwilioController],
-        exports: [twilio_service_1.TwilioService],
+        controllers: [calls_controller_1.CallsController],
     })
-], TwilioModule);
-//# sourceMappingURL=twilio.module.js.map
+], CallsModule);
+//# sourceMappingURL=calls.module.js.map

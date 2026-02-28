@@ -9,10 +9,17 @@ async function bootstrap() {
     // Set global prefix
     app.setGlobalPrefix('api');
     // Enable CORS
+    // CORS seguro: solo permite localhost y el dominio de frontend de producción
     app.enableCors({
-        origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+        origin: [
+            'http://localhost:3002',
+            'https://crmmibofrontend-production.up.railway.app',
+        ],
+        methods: 'GET,POST,PATCH,DELETE,OPTIONS',
         credentials: true,
     });
+    // Si necesitas abrir CORS para pruebas, comenta el bloque anterior y descomenta esto:
+    // app.enableCors({ origin: true, methods: 'GET,POST,PATCH,DELETE,OPTIONS', credentials: true });
     // Swagger Setup
     const config = new swagger_1.DocumentBuilder()
         .setTitle('Internal Chat MVP API')

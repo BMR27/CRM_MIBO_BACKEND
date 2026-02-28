@@ -1,4 +1,3 @@
-
 import {
   Controller,
   Get,
@@ -16,10 +15,15 @@ import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../../decorators/roles.decorator';
+import { MessagesService } from '../messages/messages.service';
+import { CreateMessageDto } from '../messages/dto/create-message.dto';
 
 @Controller('conversations')
 export class ConversationsController {
-  constructor(private readonly conversationsService: ConversationsService) {}
+  constructor(
+    private readonly conversationsService: ConversationsService,
+    private readonly messagesService: MessagesService,
+  ) {}
 
   @Get(':id/messages')
   @UseGuards(JwtAuthGuard)
@@ -30,7 +34,7 @@ export class ConversationsController {
   @Post()
   @UseGuards(JwtAuthGuard)
   create(@Body(ValidationPipe) createConversationDto: CreateConversationDto) {
-    return this.conversationsService.create(createConversationDto);
+    return this.conversationsService.create(createConversationDto).then(conversation => ({ conversation }));
   }
 
   @Get()
@@ -78,6 +82,43 @@ export class ConversationsController {
   @UseGuards(JwtAuthGuard)
   remove(@Param('id') id: string) {
     return this.conversationsService.remove(id);
+  }
+
+  @Post(':id/messages')
+  @UseGuards(JwtAuthGuard)
+  async createMessageForConversation(
+    @Param('id') conversationId: string,
+    @Body(ValidationPipe) body: Partial<CreateMessageDto>,
+    @Req() req: any,
+  ) {
+    try {
+      console.log('[createMessageForConversation] conversationId:', conversationId)
+      console.log('[createMessageForConversation] body:', body)
+      console.log('[createMessageForConversation] req.user:', req.user)
+      // Validar existencia de conversación
+      const conversation = await this.conversationsService.findOne(conversationId);
+      if (!conversation) {
+        console.error('[createMessageForConversation] No existe la conversación:', conversationId);
+        throw new Error('La conversación no existe');
+      }
+      if (!body.content) {
+        throw new Error('El campo content es obligatorio')
+      }
+      const createMessageDto: CreateMessageDto = {
+        ...body,
+        conversation_id: conversationId,
+        sender_type: body.sender_type || 'user',
+        sender_id: body.sender_id || req.user?.id,
+        content: body.content,
+        message_type: body.message_type || 'text',
+      };
+      const result = await this.messagesService.create(createMessageDto);
+      console.log('[createMessageForConversation] Mensaje creado:', result)
+      return result;
+    } catch (error) {
+      console.error('[createMessageForConversation] Error:', error);
+      throw error;
+    }
   }
 }
 

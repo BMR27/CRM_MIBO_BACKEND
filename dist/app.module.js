@@ -23,6 +23,7 @@ const macros_module_1 = require("./modules/macros/macros.module");
 const conversation_tags_module_1 = require("./modules/conversation-tags/conversation-tags.module");
 const whatsapp_module_1 = require("./modules/whatsapp/whatsapp.module");
 const twilio_module_1 = require("./twilio/twilio.module");
+const calls_module_1 = require("./modules/calls/calls.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -86,6 +87,7 @@ exports.AppModule = AppModule = __decorate([
             conversation_tags_module_1.ConversationTagsModule,
             whatsapp_module_1.WhatsappModule,
             twilio_module_1.TwilioModule,
+            calls_module_1.CallsModule,
         ],
         controllers: [],
         providers: [

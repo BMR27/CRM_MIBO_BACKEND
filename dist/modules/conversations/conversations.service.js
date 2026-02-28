@@ -21,6 +21,13 @@ let ConversationsService = class ConversationsService {
     constructor(conversationRepository) {
         this.conversationRepository = conversationRepository;
     }
+    async getMessagesByConversation(conversationId) {
+        const conv = await this.conversationRepository.findOne({
+            where: { id: conversationId },
+            relations: ['messages'],
+        });
+        return conv?.messages || [];
+    }
     async create(createConversationDto) {
         const conversation = this.conversationRepository.create(createConversationDto);
         return this.conversationRepository.save(conversation);
@@ -31,10 +38,18 @@ let ConversationsService = class ConversationsService {
         });
     }
     async findOne(id) {
-        return this.conversationRepository.findOne({
+        const conversation = await this.conversationRepository.findOne({
             where: { id },
             relations: ['contact', 'assigned_agent', 'messages'],
         });
+        if (!conversation) {
+            // Usar NotFoundException para que el backend retorne 404
+            // y el frontend pueda manejarlo correctamente
+            // Importar NotFoundException si no está
+            // import { NotFoundException } from '@nestjs/common';
+            throw new (require('@nestjs/common').NotFoundException)('Conversation not found');
+        }
+        return conversation;
     }
     async findByContact(contactId) {
         return this.conversationRepository.find({
@@ -62,6 +77,7 @@ let ConversationsService = class ConversationsService {
     }
     async remove(id) {
         await this.conversationRepository.delete(id);
+        return { success: true };
     }
 };
 exports.ConversationsService = ConversationsService;

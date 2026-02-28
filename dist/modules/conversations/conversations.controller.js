@@ -18,17 +18,21 @@ const conversations_service_1 = require("./conversations.service");
 const create_conversation_dto_1 = require("./dto/create-conversation.dto");
 const update_conversation_dto_1 = require("./dto/update-conversation.dto");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const messages_service_1 = require("../messages/messages.service");
 let ConversationsController = class ConversationsController {
-    constructor(conversationsService) {
+    constructor(conversationsService, messagesService) {
         this.conversationsService = conversationsService;
+        this.messagesService = messagesService;
+    }
+    async getMessages(id) {
+        return this.conversationsService.getMessagesByConversation(id);
     }
     create(createConversationDto) {
-        return this.conversationsService.create(createConversationDto);
+        return this.conversationsService.create(createConversationDto).then(conversation => ({ conversation }));
     }
     findAll(request) {
         const user = request.user;
         const userRole = user?.role;
-        // Si es agente, filtra solo conversaciones asignadas
         if (userRole === 'agent') {
             return this.conversationsService.findByAssignedAgent(user.id);
         }
@@ -49,8 +53,47 @@ let ConversationsController = class ConversationsController {
     remove(id) {
         return this.conversationsService.remove(id);
     }
+    async createMessageForConversation(conversationId, body, req) {
+        try {
+            console.log('[createMessageForConversation] conversationId:', conversationId);
+            console.log('[createMessageForConversation] body:', body);
+            console.log('[createMessageForConversation] req.user:', req.user);
+            // Validar existencia de conversación
+            const conversation = await this.conversationsService.findOne(conversationId);
+            if (!conversation) {
+                console.error('[createMessageForConversation] No existe la conversación:', conversationId);
+                throw new Error('La conversación no existe');
+            }
+            if (!body.content) {
+                throw new Error('El campo content es obligatorio');
+            }
+            const createMessageDto = {
+                ...body,
+                conversation_id: conversationId,
+                sender_type: body.sender_type || 'user',
+                sender_id: body.sender_id || req.user?.id,
+                content: body.content,
+                message_type: body.message_type || 'text',
+            };
+            const result = await this.messagesService.create(createMessageDto);
+            console.log('[createMessageForConversation] Mensaje creado:', result);
+            return result;
+        }
+        catch (error) {
+            console.error('[createMessageForConversation] Error:', error);
+            throw error;
+        }
+    }
 };
 exports.ConversationsController = ConversationsController;
+__decorate([
+    (0, common_1.Get)(':id/messages'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], ConversationsController.prototype, "getMessages", null);
 __decorate([
     (0, common_1.Post)(),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
@@ -109,8 +152,19 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], ConversationsController.prototype, "remove", null);
+__decorate([
+    (0, common_1.Post)(':id/messages'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)(common_1.ValidationPipe)),
+    __param(2, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:returntype", Promise)
+], ConversationsController.prototype, "createMessageForConversation", null);
 exports.ConversationsController = ConversationsController = __decorate([
     (0, common_1.Controller)('conversations'),
-    __metadata("design:paramtypes", [conversations_service_1.ConversationsService])
+    __metadata("design:paramtypes", [conversations_service_1.ConversationsService,
+        messages_service_1.MessagesService])
 ], ConversationsController);
 //# sourceMappingURL=conversations.controller.js.map

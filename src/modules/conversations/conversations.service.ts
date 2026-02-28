@@ -33,10 +33,18 @@ export class ConversationsService {
   }
 
   async findOne(id: string) {
-    return this.conversationRepository.findOne({
+    const conversation = await this.conversationRepository.findOne({
       where: { id },
       relations: ['contact', 'assigned_agent', 'messages'],
     });
+    if (!conversation) {
+      // Usar NotFoundException para que el backend retorne 404
+      // y el frontend pueda manejarlo correctamente
+      // Importar NotFoundException si no está
+      // import { NotFoundException } from '@nestjs/common';
+      throw new (require('@nestjs/common').NotFoundException)('Conversation not found');
+    }
+    return conversation;
   }
 
   async findByContact(contactId: string) {
@@ -69,5 +77,6 @@ export class ConversationsService {
 
   async remove(id: string) {
     await this.conversationRepository.delete(id);
+    return { success: true };
   }
 }
