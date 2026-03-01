@@ -155,7 +155,7 @@ export class WhatsappService {
         } as any);
       }
 
-      await this.messagesService.create({
+      await this.messagesService.createIfNotExists({
         conversation_id: activeConversation.id,
         sender_type: 'contact' as any,
         content: messageBody ?? '',
@@ -172,7 +172,7 @@ export class WhatsappService {
       });
 
       await this.conversationsService.update(activeConversation.id, {
-        status: activeConversation.status || 'active',
+        sender_id: contact?.id || null, // Asigna el id del contacto si existe
         priority: activeConversation.priority || 'medium',
       } as any);
 
@@ -196,33 +196,57 @@ export class WhatsappService {
     try {
       const cleanPhone = this.normalizePhoneNumber(phoneNumber);
 
-      if (this.cloudAccessToken && this.cloudPhoneNumberId) {
-        return this.sendCloudTextMessage(cleanPhone, message);
+      // Forzar uso de Twilio SDK para texto plano
+      if (this.twilioClient && this.twilioPhoneNumber) {
+        let formattedPhone = phoneNumber;
+        if (!formattedPhone.startsWith('whatsapp:+')) {
+          formattedPhone = `whatsapp:+${cleanPhone}`;
+        }
+        try {
+          const response = await this.twilioClient.messages.create({
+            from: `whatsapp:${this.twilioPhoneNumber}`,
+            to: formattedPhone,
+            body: message,
+          });
+          this.logger.log(`Message sent to ${phoneNumber}, SID: ${response.sid}`);
+
+          // Guardar el mensaje enviado por el agente inmediatamente
+          // Buscar la conversación activa por el número de teléfono
+          const contact = await this.contactsService.findOrCreateByPhone(phoneNumber);
+          const conversations = await this.conversationsService.findByContact(contact.id);
+          let activeConversation = null;
+          if (conversations && conversations.length > 0) {
+            activeConversation = conversations[0];
+          } else {
+            activeConversation = await this.conversationsService.create({
+              contact_id: contact.id,
+            } as any);
+          }
+          await this.messagesService.create({
+            conversation_id: activeConversation.id,
+            sender_type: 'agent',
+            content: message,
+            message_type: 'text',
+            is_from_whatsapp: false,
+            whatsapp_message_id: response.sid,
+          });
+
+          return {
+            success: true,
+            whatsapp_message_id: response.sid,
+          };
+        } catch (error: any) {
+          this.logger.error('Error sending message:', error);
+          return {
+            success: false,
+            error: error.message || 'Failed to send message',
+          };
+        }
       }
-
-      if (!this.twilioClient || !this.twilioPhoneNumber) {
-        return {
-          success: false,
-          error: 'Twilio not configured and Cloud API not configured',
-        };
-      }
-
-      let formattedPhone = phoneNumber;
-      if (!formattedPhone.startsWith('whatsapp:+')) {
-        formattedPhone = `whatsapp:+${cleanPhone}`;
-      }
-
-      const response = await this.twilioClient.messages.create({
-        from: `whatsapp:${this.twilioPhoneNumber}`,
-        to: formattedPhone,
-        body: message,
-      });
-
-      this.logger.log(`Message sent to ${phoneNumber}, SID: ${response.sid}`);
-
+      // Si no hay Twilio, retornar error
       return {
-        success: true,
-        whatsapp_message_id: response.sid,
+        success: false,
+        error: 'Twilio not configured',
       };
     } catch (error: any) {
       this.logger.error('Error sending message:', error);
@@ -513,6 +537,26 @@ export class WhatsappService {
     error_code?: number;
     hint?: string;
   }> {
+    // Usar Twilio SDK para enviar texto plano si está configurado
+    if (this.twilioClient && this.twilioPhoneNumber) {
+      try {
+        const response = await this.twilioClient.messages.create({
+          from: `whatsapp:${this.twilioPhoneNumber}`,
+          to: `whatsapp:+${cleanPhone}`,
+          body: message,
+        });
+        return {
+          success: true,
+          whatsapp_message_id: response.sid,
+        };
+      } catch (error: any) {
+        return {
+          success: false,
+          error: error.message || 'Failed to send message via Twilio',
+        };
+      }
+    }
+    // Si no hay Twilio, usar Cloud API (fetch)
     const response = await fetch(
       `https://graph.facebook.com/v19.0/${this.cloudPhoneNumberId}/messages`,
       {

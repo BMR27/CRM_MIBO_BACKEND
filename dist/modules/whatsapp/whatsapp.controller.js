@@ -34,9 +34,10 @@ let WhatsappController = class WhatsappController {
         }
         throw new common_1.HttpException('Forbidden', common_1.HttpStatus.FORBIDDEN);
     }
-    async handleWebhook(body) {
+    async handleWebhook(body, res) {
         await this.whatsappService.handleWebhook(body);
-        return { success: true };
+        res.setHeader('Content-Type', 'application/json');
+        res.status(200).send(JSON.stringify({ success: true }));
     }
     /**
      * Health check - Verificar conexión con Twilio
@@ -148,8 +149,9 @@ __decorate([
         },
     }),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], WhatsappController.prototype, "handleWebhook", null);
 __decorate([

@@ -21,6 +21,16 @@ let MessagesService = class MessagesService {
     constructor(messageRepository) {
         this.messageRepository = messageRepository;
     }
+    async createIfNotExists(createMessageDto) {
+        if (createMessageDto.whatsapp_message_id) {
+            const existing = await this.messageRepository.findOne({
+                where: { whatsapp_message_id: createMessageDto.whatsapp_message_id }
+            });
+            if (existing)
+                return existing;
+        }
+        return this.create(createMessageDto);
+    }
     attachMediaProxyUrl(messageOrMessages) {
         if (!messageOrMessages)
             return messageOrMessages;

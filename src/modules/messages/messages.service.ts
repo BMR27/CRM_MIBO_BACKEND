@@ -12,6 +12,16 @@ export class MessagesService {
     private messageRepository: Repository<Message>,
   ) {}
 
+  async createIfNotExists(createMessageDto: CreateMessageDto) {
+    if (createMessageDto.whatsapp_message_id) {
+      const existing = await this.messageRepository.findOne({
+        where: { whatsapp_message_id: createMessageDto.whatsapp_message_id }
+      });
+      if (existing) return existing;
+    }
+    return this.create(createMessageDto);
+  }
+
   private attachMediaProxyUrl(message: Message): any;
   private attachMediaProxyUrl(messages: Message[]): any[];
   private attachMediaProxyUrl(

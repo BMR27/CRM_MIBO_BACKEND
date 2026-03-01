@@ -5,6 +5,7 @@ import { UpdateMessageDto } from './dto/update-message.dto';
 export declare class MessagesService {
     private messageRepository;
     constructor(messageRepository: Repository<Message>);
+    createIfNotExists(createMessageDto: CreateMessageDto): Promise<any[] | Message>;
     private attachMediaProxyUrl;
     create(createMessageDto: CreateMessageDto): Promise<any[]>;
     findAll(): Promise<any[]>;

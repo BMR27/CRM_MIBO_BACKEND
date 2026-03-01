@@ -5,20 +5,19 @@ import { Repository } from 'typeorm';
 import { Conversation } from './entities/conversation.entity';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
+import { MessagesService } from '../messages/messages.service';
 
 @Injectable()
 export class ConversationsService {
   constructor(
     @InjectRepository(Conversation)
     private conversationRepository: Repository<Conversation>,
+    private messagesService: MessagesService,
   ) {}
 
   async getMessagesByConversation(conversationId: string) {
-    const conv = await this.conversationRepository.findOne({
-      where: { id: conversationId },
-      relations: ['messages'],
-    });
-    return conv?.messages || [];
+    // Usar el servicio inyectado para obtener los mensajes correctamente ordenados y con media_proxy_url
+    return await this.messagesService.findByConversation(conversationId);
   }
 
   async create(createConversationDto: CreateConversationDto) {

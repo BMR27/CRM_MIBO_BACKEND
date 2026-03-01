@@ -17,13 +17,20 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../../decorators/roles.decorator';
 import { MessagesService } from '../messages/messages.service';
 import { CreateMessageDto } from '../messages/dto/create-message.dto';
+import { ContactsService } from '../contacts/contacts.service';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 
 @Controller('conversations')
 export class ConversationsController {
   constructor(
     private readonly conversationsService: ConversationsService,
     private readonly messagesService: MessagesService,
-  ) {}
+    private readonly contactsService: ContactsService,
+    private readonly whatsappService: WhatsappService,
+  ) {
+    this.logger = new (require('@nestjs/common').Logger)(ConversationsController.name);
+  }
+  private readonly logger;
 
   @Get(':id/messages')
   @UseGuards(JwtAuthGuard)
@@ -92,34 +99,72 @@ export class ConversationsController {
     @Req() req: any,
   ) {
     try {
-      console.log('[createMessageForConversation] conversationId:', conversationId)
-      console.log('[createMessageForConversation] body:', body)
-      console.log('[createMessageForConversation] req.user:', req.user)
-      // Validar existencia de conversación
+      // ...existing code...
       const conversation = await this.conversationsService.findOne(conversationId);
       if (!conversation) {
-        console.error('[createMessageForConversation] No existe la conversación:', conversationId);
-        throw new Error('La conversación no existe');
+        return {
+          success: false,
+          error: 'La conversación no existe',
+        };
       }
       if (!body.content) {
-        throw new Error('El campo content es obligatorio')
+        return {
+          success: false,
+          error: 'El campo content es obligatorio',
+        };
       }
-      // Si el usuario autenticado es un agente, asignar sender_type 'agent'
-      const isAgent = req.user?.role === 'agent' || req.user?.isAgent
+      // ...existing code...
+      // Asignar el sender_type según el rol real del usuario
+      let senderType = 'user';
+      if (req.user?.role === 'admin') senderType = 'admin';
+      else if (req.user?.role === 'supervisor') senderType = 'supervisor';
+      else if (req.user?.role === 'agent' || req.user?.isAgent) senderType = 'agent';
       const createMessageDto: CreateMessageDto = {
         ...body,
         conversation_id: conversationId,
-        sender_type: isAgent ? 'agent' : (body.sender_type || 'user'),
+        sender_type: senderType,
         sender_id: body.sender_id || req.user?.id,
         content: body.content,
         message_type: body.message_type || 'text',
       };
       const result = await this.messagesService.create(createMessageDto);
-      console.log('[createMessageForConversation] Mensaje creado:', result)
-      return result;
+      // ...existing code...
+      if (conversation.channel === 'whatsapp' && createMessageDto.sender_type === 'agent') {
+        try {
+          const contact = conversation.contact || (await this.contactsService.findOne(conversation.contact_id));
+          if (contact && contact.phone_number) {
+            const sendResult = await this.whatsappService.sendMessage(contact.phone_number, createMessageDto.content);
+            if (sendResult && sendResult.success === false) {
+              this.logger.error('[WhatsApp] Error al enviar mensaje:', sendResult.error, sendResult);
+              return {
+                success: false,
+                error: sendResult.error || 'Error enviando mensaje a WhatsApp',
+                hint: sendResult.hint,
+                error_code: sendResult.error_code,
+                message: result,
+              };
+            } else {
+              this.logger.log('[WhatsApp] Mensaje enviado correctamente:', sendResult.whatsapp_message_id);
+            }
+          }
+        } catch (sendError) {
+          this.logger.error('[WhatsApp] Excepción al enviar mensaje:', sendError);
+          return {
+            success: false,
+            error: sendError?.message || 'Error enviando mensaje a WhatsApp',
+            message: result,
+          };
+        }
+      }
+      return {
+        success: true,
+        message: result,
+      };
     } catch (error) {
-      console.error('[createMessageForConversation] Error:', error);
-      throw error;
+      return {
+        success: false,
+        error: error?.message || 'Error inesperado',
+      };
     }
   }
 }

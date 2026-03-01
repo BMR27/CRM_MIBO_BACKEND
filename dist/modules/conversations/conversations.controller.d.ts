@@ -3,11 +3,16 @@ import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { MessagesService } from '../messages/messages.service';
 import { CreateMessageDto } from '../messages/dto/create-message.dto';
+import { ContactsService } from '../contacts/contacts.service';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 export declare class ConversationsController {
     private readonly conversationsService;
     private readonly messagesService;
-    constructor(conversationsService: ConversationsService, messagesService: MessagesService);
-    getMessages(id: string): Promise<import("../messages/entities/message.entity").Message[]>;
+    private readonly contactsService;
+    private readonly whatsappService;
+    constructor(conversationsService: ConversationsService, messagesService: MessagesService, contactsService: ContactsService, whatsappService: WhatsappService);
+    private readonly logger;
+    getMessages(id: string): Promise<any[]>;
     create(createConversationDto: CreateConversationDto): Promise<{
         conversation: import("./entities/conversation.entity").Conversation[];
     }>;
@@ -21,6 +26,30 @@ export declare class ConversationsController {
     remove(id: string): Promise<{
         success: boolean;
     }>;
-    createMessageForConversation(conversationId: string, body: Partial<CreateMessageDto>, req: any): Promise<any[]>;
+    createMessageForConversation(conversationId: string, body: Partial<CreateMessageDto>, req: any): Promise<{
+        success: boolean;
+        error: string;
+        hint: string;
+        error_code: number;
+        message: any[];
+    } | {
+        success: boolean;
+        error: any;
+        message: any[];
+        hint?: undefined;
+        error_code?: undefined;
+    } | {
+        success: boolean;
+        message: any[];
+        error?: undefined;
+        hint?: undefined;
+        error_code?: undefined;
+    } | {
+        success: boolean;
+        error: any;
+        hint?: undefined;
+        error_code?: undefined;
+        message?: undefined;
+    }>;
 }
 //# sourceMappingURL=conversations.controller.d.ts.map

@@ -1,4 +1,5 @@
-﻿import {
+﻿// ...existing code...
+import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
@@ -15,6 +16,8 @@ import { ConversationTag } from '../../conversation-tags/entities/conversation-t
 
 @Entity('conversations')
 export class Conversation {
+    @Column({ type: 'varchar', length: 32, default: 'whatsapp' })
+    channel: string;
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -40,6 +43,11 @@ export class Conversation {
 
   @Column({ type: 'text', nullable: true })
   notes: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  external_user_id: string;
 
   @Column({ type: 'timestamp', nullable: true })
   last_message_at: Date;

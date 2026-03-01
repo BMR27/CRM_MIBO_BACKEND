@@ -10,6 +10,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Conversation = void 0;
+// ...existing code...
 const typeorm_1 = require("typeorm");
 const contact_entity_1 = require("../../contacts/entities/contact.entity");
 const user_entity_1 = require("../../users/entities/user.entity");
@@ -18,6 +19,10 @@ const conversation_tag_entity_1 = require("../../conversation-tags/entities/conv
 let Conversation = class Conversation {
 };
 exports.Conversation = Conversation;
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 32, default: 'whatsapp' }),
+    __metadata("design:type", String)
+], Conversation.prototype, "channel", void 0);
 __decorate([
     (0, typeorm_1.PrimaryGeneratedColumn)('uuid'),
     __metadata("design:type", String)
@@ -50,6 +55,11 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'text', nullable: true }),
     __metadata("design:type", String)
 ], Conversation.prototype, "notes", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 255, nullable: true }),
+    (0, typeorm_1.Column)({ type: 'varchar', length: 255, nullable: true }),
+    __metadata("design:type", String)
+], Conversation.prototype, "external_user_id", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
     __metadata("design:type", Date)

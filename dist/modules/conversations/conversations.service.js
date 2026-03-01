@@ -17,16 +17,15 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const conversation_entity_1 = require("./entities/conversation.entity");
+const messages_service_1 = require("../messages/messages.service");
 let ConversationsService = class ConversationsService {
-    constructor(conversationRepository) {
+    constructor(conversationRepository, messagesService) {
         this.conversationRepository = conversationRepository;
+        this.messagesService = messagesService;
     }
     async getMessagesByConversation(conversationId) {
-        const conv = await this.conversationRepository.findOne({
-            where: { id: conversationId },
-            relations: ['messages'],
-        });
-        return conv?.messages || [];
+        // Usar el servicio inyectado para obtener los mensajes correctamente ordenados y con media_proxy_url
+        return await this.messagesService.findByConversation(conversationId);
     }
     async create(createConversationDto) {
         const conversation = this.conversationRepository.create(createConversationDto);
@@ -97,6 +96,7 @@ exports.ConversationsService = ConversationsService;
 exports.ConversationsService = ConversationsService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(conversation_entity_1.Conversation)),
-    __metadata("design:paramtypes", [typeorm_2.Repository])
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        messages_service_1.MessagesService])
 ], ConversationsService);
 //# sourceMappingURL=conversations.service.js.map

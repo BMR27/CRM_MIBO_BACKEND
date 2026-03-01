@@ -13,12 +13,15 @@ const conversation_entity_1 = require("./entities/conversation.entity");
 const conversations_service_1 = require("./conversations.service");
 const conversations_controller_1 = require("./conversations.controller");
 const messages_module_1 = require("../messages/messages.module");
+const contacts_module_1 = require("../contacts/contacts.module");
+const common_2 = require("@nestjs/common");
+const whatsapp_module_1 = require("../whatsapp/whatsapp.module");
 let ConversationsModule = class ConversationsModule {
 };
 exports.ConversationsModule = ConversationsModule;
 exports.ConversationsModule = ConversationsModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([conversation_entity_1.Conversation]), messages_module_1.MessagesModule],
+        imports: [typeorm_1.TypeOrmModule.forFeature([conversation_entity_1.Conversation]), messages_module_1.MessagesModule, contacts_module_1.ContactsModule, (0, common_2.forwardRef)(() => whatsapp_module_1.WhatsappModule)],
         providers: [conversations_service_1.ConversationsService],
         controllers: [conversations_controller_1.ConversationsController],
         exports: [conversations_service_1.ConversationsService],

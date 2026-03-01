@@ -11,6 +11,7 @@ const common_1 = require("@nestjs/common");
 const whatsapp_service_1 = require("./whatsapp.service");
 const whatsapp_controller_1 = require("./whatsapp.controller");
 const contacts_module_1 = require("../contacts/contacts.module");
+const common_2 = require("@nestjs/common");
 const conversations_module_1 = require("../conversations/conversations.module");
 const messages_module_1 = require("../messages/messages.module");
 let WhatsappModule = class WhatsappModule {
@@ -18,7 +19,7 @@ let WhatsappModule = class WhatsappModule {
 exports.WhatsappModule = WhatsappModule;
 exports.WhatsappModule = WhatsappModule = __decorate([
     (0, common_1.Module)({
-        imports: [contacts_module_1.ContactsModule, conversations_module_1.ConversationsModule, messages_module_1.MessagesModule],
+        imports: [contacts_module_1.ContactsModule, (0, common_2.forwardRef)(() => conversations_module_1.ConversationsModule), messages_module_1.MessagesModule],
         providers: [whatsapp_service_1.WhatsappService],
         controllers: [whatsapp_controller_1.WhatsappController],
         exports: [whatsapp_service_1.WhatsappService],

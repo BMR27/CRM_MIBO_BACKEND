@@ -2,19 +2,23 @@ import { Repository } from 'typeorm';
 import { Conversation } from './entities/conversation.entity';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
+import { MessagesService } from '../messages/messages.service';
 export declare class ConversationsService {
     private conversationRepository;
-    constructor(conversationRepository: Repository<Conversation>);
-    getMessagesByConversation(conversationId: string): Promise<import("../messages/entities/message.entity").Message[]>;
+    private messagesService;
+    constructor(conversationRepository: Repository<Conversation>, messagesService: MessagesService);
+    getMessagesByConversation(conversationId: string): Promise<any[]>;
     create(createConversationDto: CreateConversationDto): Promise<Conversation[]>;
     findAll(): Promise<{
         last_message: any;
+        channel: string;
         id: string;
         contact_id: string;
         assigned_agent_id: string;
         status: "active" | "paused" | "resolved";
         priority: "low" | "medium" | "high";
         notes: string;
+        external_user_id: string;
         last_message_at: Date;
         created_at: Date;
         updated_at: Date;

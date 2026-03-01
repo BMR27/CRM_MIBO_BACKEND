@@ -10,9 +10,7 @@ export declare class WhatsappController {
      * Webhook para recibir mensajes desde Twilio
      */
     verifyWebhook(mode: string, token: string, challenge: string): Promise<string>;
-    handleWebhook(body: any): Promise<{
-        success: boolean;
-    }>;
+    handleWebhook(body: any, res: Response): Promise<void>;
     /**
      * Health check - Verificar conexión con Twilio
      */

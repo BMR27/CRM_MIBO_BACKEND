@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var ConversationsController_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConversationsController = void 0;
 const common_1 = require("@nestjs/common");
@@ -19,10 +20,15 @@ const create_conversation_dto_1 = require("./dto/create-conversation.dto");
 const update_conversation_dto_1 = require("./dto/update-conversation.dto");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const messages_service_1 = require("../messages/messages.service");
-let ConversationsController = class ConversationsController {
-    constructor(conversationsService, messagesService) {
+const contacts_service_1 = require("../contacts/contacts.service");
+const whatsapp_service_1 = require("../whatsapp/whatsapp.service");
+let ConversationsController = ConversationsController_1 = class ConversationsController {
+    constructor(conversationsService, messagesService, contactsService, whatsappService) {
         this.conversationsService = conversationsService;
         this.messagesService = messagesService;
+        this.contactsService = contactsService;
+        this.whatsappService = whatsappService;
+        this.logger = new (require('@nestjs/common').Logger)(ConversationsController_1.name);
     }
     async getMessages(id) {
         return this.conversationsService.getMessagesByConversation(id);
@@ -55,35 +61,78 @@ let ConversationsController = class ConversationsController {
     }
     async createMessageForConversation(conversationId, body, req) {
         try {
-            console.log('[createMessageForConversation] conversationId:', conversationId);
-            console.log('[createMessageForConversation] body:', body);
-            console.log('[createMessageForConversation] req.user:', req.user);
-            // Validar existencia de conversación
+            // ...existing code...
             const conversation = await this.conversationsService.findOne(conversationId);
             if (!conversation) {
-                console.error('[createMessageForConversation] No existe la conversación:', conversationId);
-                throw new Error('La conversación no existe');
+                return {
+                    success: false,
+                    error: 'La conversación no existe',
+                };
             }
             if (!body.content) {
-                throw new Error('El campo content es obligatorio');
+                return {
+                    success: false,
+                    error: 'El campo content es obligatorio',
+                };
             }
-            // Si el usuario autenticado es un agente, asignar sender_type 'agent'
-            const isAgent = req.user?.role === 'agent' || req.user?.isAgent;
+            // ...existing code...
+            // Asignar el sender_type según el rol real del usuario
+            let senderType = 'user';
+            if (req.user?.role === 'admin')
+                senderType = 'admin';
+            else if (req.user?.role === 'supervisor')
+                senderType = 'supervisor';
+            else if (req.user?.role === 'agent' || req.user?.isAgent)
+                senderType = 'agent';
             const createMessageDto = {
                 ...body,
                 conversation_id: conversationId,
-                sender_type: isAgent ? 'agent' : (body.sender_type || 'user'),
+                sender_type: senderType,
                 sender_id: body.sender_id || req.user?.id,
                 content: body.content,
                 message_type: body.message_type || 'text',
             };
             const result = await this.messagesService.create(createMessageDto);
-            console.log('[createMessageForConversation] Mensaje creado:', result);
-            return result;
+            // ...existing code...
+            if (conversation.channel === 'whatsapp' && createMessageDto.sender_type === 'agent') {
+                try {
+                    const contact = conversation.contact || (await this.contactsService.findOne(conversation.contact_id));
+                    if (contact && contact.phone_number) {
+                        const sendResult = await this.whatsappService.sendMessage(contact.phone_number, createMessageDto.content);
+                        if (sendResult && sendResult.success === false) {
+                            this.logger.error('[WhatsApp] Error al enviar mensaje:', sendResult.error, sendResult);
+                            return {
+                                success: false,
+                                error: sendResult.error || 'Error enviando mensaje a WhatsApp',
+                                hint: sendResult.hint,
+                                error_code: sendResult.error_code,
+                                message: result,
+                            };
+                        }
+                        else {
+                            this.logger.log('[WhatsApp] Mensaje enviado correctamente:', sendResult.whatsapp_message_id);
+                        }
+                    }
+                }
+                catch (sendError) {
+                    this.logger.error('[WhatsApp] Excepción al enviar mensaje:', sendError);
+                    return {
+                        success: false,
+                        error: sendError?.message || 'Error enviando mensaje a WhatsApp',
+                        message: result,
+                    };
+                }
+            }
+            return {
+                success: true,
+                message: result,
+            };
         }
         catch (error) {
-            console.error('[createMessageForConversation] Error:', error);
-            throw error;
+            return {
+                success: false,
+                error: error?.message || 'Error inesperado',
+            };
         }
     }
 };
@@ -164,9 +213,11 @@ __decorate([
     __metadata("design:paramtypes", [String, Object, Object]),
     __metadata("design:returntype", Promise)
 ], ConversationsController.prototype, "createMessageForConversation", null);
-exports.ConversationsController = ConversationsController = __decorate([
+exports.ConversationsController = ConversationsController = ConversationsController_1 = __decorate([
     (0, common_1.Controller)('conversations'),
     __metadata("design:paramtypes", [conversations_service_1.ConversationsService,
-        messages_service_1.MessagesService])
+        messages_service_1.MessagesService,
+        contacts_service_1.ContactsService,
+        whatsapp_service_1.WhatsappService])
 ], ConversationsController);
 //# sourceMappingURL=conversations.controller.js.map
