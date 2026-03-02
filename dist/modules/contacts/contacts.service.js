@@ -49,6 +49,7 @@ let ContactsService = class ContactsService {
         return contact;
     }
     async update(id, updateContactDto) {
+        console.log('[ContactsService] update', { id, updateContactDto });
         await this.contactRepository.update(id, updateContactDto);
         return this.findOne(id);
     }
@@ -58,6 +59,7 @@ let ContactsService = class ContactsService {
         });
     }
     async remove(id) {
+        console.log('[ContactsService] remove', { id });
         await this.contactRepository.delete(id);
     }
 };

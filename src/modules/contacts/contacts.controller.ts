@@ -41,11 +41,13 @@ export class ContactsController {
     @Param('id') id: string,
     @Body(ValidationPipe) updateContactDto: UpdateContactDto,
   ) {
+    console.log('[ContactsController] PATCH /contacts/:id', { id, updateContactDto });
     return this.contactsService.update(id, updateContactDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
+    console.log('[ContactsController] DELETE /contacts/:id', { id });
     return this.contactsService.remove(id);
   }
 }

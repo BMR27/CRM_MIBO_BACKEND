@@ -38,13 +38,14 @@ export class ContactsService {
     if (!contact) {
       contact = await this.create({
         phone_number: phoneNumber,
-        name: phoneNumber, // Usar el teléfono como nombre inicial
+        name: phoneNumber, // Usar el telï¿½fono como nombre inicial
       });
     }
     return contact;
   }
 
   async update(id: string, updateContactDto: UpdateContactDto) {
+    console.log('[ContactsService] update', { id, updateContactDto });
     await this.contactRepository.update(id, updateContactDto);
     return this.findOne(id);
   }
@@ -56,6 +57,7 @@ export class ContactsService {
   }
 
   async remove(id: string) {
+    console.log('[ContactsService] remove', { id });
     await this.contactRepository.delete(id);
   }
 }

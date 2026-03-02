@@ -34,9 +34,11 @@ let ContactsController = class ContactsController {
         return this.contactsService.findByPhoneNumber(phone);
     }
     update(id, updateContactDto) {
+        console.log('[ContactsController] PATCH /contacts/:id', { id, updateContactDto });
         return this.contactsService.update(id, updateContactDto);
     }
     remove(id) {
+        console.log('[ContactsController] DELETE /contacts/:id', { id });
         return this.contactsService.remove(id);
     }
 };
