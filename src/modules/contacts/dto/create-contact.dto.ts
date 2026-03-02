@@ -1,7 +1,7 @@
-﻿import { IsString, IsPhoneNumber, IsOptional, IsUrl } from 'class-validator';
+﻿import { IsString, Matches, IsOptional, IsUrl } from 'class-validator';
 
 export class CreateContactDto {
-  @IsPhoneNumber(null)
+  @Matches(/^\+\d{10,15}$/, { message: 'phone_number must be a valid international phone number' })
   phone_number: string;
 
   @IsString()

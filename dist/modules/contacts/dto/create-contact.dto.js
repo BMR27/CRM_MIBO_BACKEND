@@ -15,7 +15,7 @@ class CreateContactDto {
 }
 exports.CreateContactDto = CreateContactDto;
 __decorate([
-    (0, class_validator_1.IsPhoneNumber)(null),
+    (0, class_validator_1.Matches)(/^\+\d{10,15}$/, { message: 'phone_number must be a valid international phone number' }),
     __metadata("design:type", String)
 ], CreateContactDto.prototype, "phone_number", void 0);
 __decorate([
