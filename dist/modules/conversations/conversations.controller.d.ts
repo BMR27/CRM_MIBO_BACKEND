@@ -16,7 +16,9 @@ export declare class ConversationsController {
     create(createConversationDto: CreateConversationDto): Promise<{
         conversation: import("./entities/conversation.entity").Conversation[];
     }>;
-    findAll(request: any): Promise<import("./entities/conversation.entity").Conversation[]>;
+    findAll(request: any): Promise<{
+        conversations: any[];
+    }>;
     findOne(id: string): Promise<import("./entities/conversation.entity").Conversation>;
     findByContact(contactId: string): Promise<import("./entities/conversation.entity").Conversation[]>;
     update(id: string, updateConversationDto: UpdateConversationDto): Promise<import("./entities/conversation.entity").Conversation>;

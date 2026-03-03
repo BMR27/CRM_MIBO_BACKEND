@@ -46,13 +46,20 @@ export class ConversationsController {
 
   @Get()
   @UseGuards(JwtAuthGuard)
-  findAll(@Req() request: any) {
+  async findAll(@Req() request: any) {
     const user = request.user;
     const userRole = user?.role;
+    let conversations = [];
     if (userRole === 'agent') {
-      return this.conversationsService.findByAssignedAgent(user.id);
+      conversations = await this.conversationsService.findByAssignedAgent(user.id);
+    } else {
+      conversations = await this.conversationsService.findAll();
     }
-    return this.conversationsService.findAll();
+    // Asegura que unread_count esté presente en la respuesta
+    return { conversations: conversations.map(conv => ({
+      ...conv,
+      unread_count: conv.unread_count ?? 0,
+    })) };
   }
 
   @Get(':id')

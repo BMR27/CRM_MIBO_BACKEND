@@ -36,13 +36,21 @@ let ConversationsController = ConversationsController_1 = class ConversationsCon
     create(createConversationDto) {
         return this.conversationsService.create(createConversationDto).then(conversation => ({ conversation }));
     }
-    findAll(request) {
+    async findAll(request) {
         const user = request.user;
         const userRole = user?.role;
+        let conversations = [];
         if (userRole === 'agent') {
-            return this.conversationsService.findByAssignedAgent(user.id);
+            conversations = await this.conversationsService.findByAssignedAgent(user.id);
         }
-        return this.conversationsService.findAll();
+        else {
+            conversations = await this.conversationsService.findAll();
+        }
+        // Asegura que unread_count esté presente en la respuesta
+        return { conversations: conversations.map(conv => ({
+                ...conv,
+                unread_count: conv.unread_count ?? 0,
+            })) };
     }
     findOne(id) {
         return this.conversationsService.findOne(id);
@@ -159,7 +167,7 @@ __decorate([
     __param(0, (0, common_1.Req)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], ConversationsController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)(':id'),

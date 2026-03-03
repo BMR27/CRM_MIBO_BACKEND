@@ -11,10 +11,14 @@
 import { MessagesService } from './messages.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
+import { MessagesMarkReadService } from './messages.markRead';
 
 @Controller('api/messages')
 export class MessagesController {
-  constructor(private readonly messagesService: MessagesService) {}
+  constructor(
+    private readonly messagesService: MessagesService,
+    private readonly messagesMarkReadService: MessagesMarkReadService,
+  ) {}
 
   @Post()
   create(@Body(ValidationPipe) createMessageDto: CreateMessageDto) {
@@ -47,5 +51,10 @@ export class MessagesController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.messagesService.remove(id);
+  }
+
+  @Post('mark-read/:conversationId')
+  async markConversationMessagesAsRead(@Param('conversationId') conversationId: string) {
+    return this.messagesMarkReadService.markConversationMessagesAsRead(conversationId);
   }
 }

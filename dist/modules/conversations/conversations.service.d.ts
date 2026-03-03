@@ -11,6 +11,7 @@ export declare class ConversationsService {
     create(createConversationDto: CreateConversationDto): Promise<Conversation[]>;
     findAll(): Promise<{
         last_message: any;
+        unread_count: number;
         channel: string;
         id: string;
         contact_id: string;
