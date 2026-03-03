@@ -96,7 +96,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], MessagesController.prototype, "markConversationMessagesAsRead", null);
 exports.MessagesController = MessagesController = __decorate([
-    (0, common_1.Controller)('api/messages'),
+    (0, common_1.Controller)('messages'),
     __metadata("design:paramtypes", [messages_service_1.MessagesService,
         messages_markRead_1.MessagesMarkReadService])
 ], MessagesController);
