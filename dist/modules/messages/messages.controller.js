@@ -17,9 +17,11 @@ const common_1 = require("@nestjs/common");
 const messages_service_1 = require("./messages.service");
 const create_message_dto_1 = require("./dto/create-message.dto");
 const update_message_dto_1 = require("./dto/update-message.dto");
+const messages_markRead_1 = require("./messages.markRead");
 let MessagesController = class MessagesController {
-    constructor(messagesService) {
+    constructor(messagesService, messagesMarkReadService) {
         this.messagesService = messagesService;
+        this.messagesMarkReadService = messagesMarkReadService;
     }
     create(createMessageDto) {
         return this.messagesService.create(createMessageDto);
@@ -38,6 +40,9 @@ let MessagesController = class MessagesController {
     }
     remove(id) {
         return this.messagesService.remove(id);
+    }
+    async markConversationMessagesAsRead(conversationId) {
+        return this.messagesMarkReadService.markConversationMessagesAsRead(conversationId);
     }
 };
 exports.MessagesController = MessagesController;
@@ -83,8 +88,16 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], MessagesController.prototype, "remove", null);
+__decorate([
+    (0, common_1.Post)('mark-read/:conversationId'),
+    __param(0, (0, common_1.Param)('conversationId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], MessagesController.prototype, "markConversationMessagesAsRead", null);
 exports.MessagesController = MessagesController = __decorate([
     (0, common_1.Controller)('api/messages'),
-    __metadata("design:paramtypes", [messages_service_1.MessagesService])
+    __metadata("design:paramtypes", [messages_service_1.MessagesService,
+        messages_markRead_1.MessagesMarkReadService])
 ], MessagesController);
 //# sourceMappingURL=messages.controller.js.map

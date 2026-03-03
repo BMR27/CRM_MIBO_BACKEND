@@ -1,0 +1,1 @@
+{"version":3,"file":"messages.markRead.d.ts","sourceRoot":"","sources":["../../../src/modules/messages/messages.markRead.ts"],"names":[],"mappings":"AAEA,OAAO,EAAE,UAAU,EAAE,MAAM,SAAS,CAAC;AACrC,OAAO,EAAE,OAAO,EAAE,MAAM,2BAA2B,CAAC;AAEpD,qBACa,uBAAuB;IAGhC,OAAO,CAAC,iBAAiB;gBAAjB,iBAAiB,EAAE,UAAU,CAAC,OAAO,CAAC;IAG1C,8BAA8B,CAAC,cAAc,EAAE,MAAM;;;CAO5D"}
