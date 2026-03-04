@@ -44,33 +44,23 @@ export class UsersService {
   }
 
   async findAgents(): Promise<any[]> {
-    const agents = await this.usersRepository.find({
-      relations: ['role'],
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role_id: true,
-        status: true,
-        created_at: true,
-      },
-    });
-
-    for (const agent of agents) {
-      const total = await this.conversationRepository.count({
-        where: { assigned_agent_id: agent.id },
-      });
-      const active = await this.conversationRepository.count({
-        where: { assigned_agent_id: agent.id, status: 'active' },
-      });
-      const resolved = await this.conversationRepository.count({
-        where: { assigned_agent_id: agent.id, status: 'resolved' },
-      });
-      (agent as any).total_conversations = total;
-      (agent as any).active_conversations = active;
-      (agent as any).resolved_conversations = resolved;
-    }
-
+    // Consulta SQL para obtener agentes y conteo de conversaciones
+    const query = `
+      SELECT 
+        u.id,
+        u.name,
+        u.email,
+        COALESCE(r.name, 'Agente') as role_name,
+        COUNT(c.id) as total_conversations,
+        COUNT(CASE WHEN c.status = 'active' THEN 1 END) as active_conversations,
+        COUNT(CASE WHEN c.status = 'resolved' THEN 1 END) as resolved_conversations
+      FROM users u
+      LEFT JOIN roles r ON u.role_id = r.id
+      LEFT JOIN conversations c ON c.assigned_agent_id = u.id
+      GROUP BY u.id, u.name, u.email, r.name
+      ORDER BY u.name
+    `;
+    const agents = await this.usersRepository.query(query);
     return agents;
   }
 

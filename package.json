@@ -30,6 +30,8 @@
     "@nestjs/platform-express": "^10.3.0",
     "@nestjs/swagger": "^7.1.16",
     "@nestjs/typeorm": "^10.0.0",
+    "@types/multer": "^2.0.0",
+    "@types/xlsx": "^0.0.35",
     "axios": "^1.6.2",
     "bcryptjs": "^2.4.3",
     "class-transformer": "^0.5.1",
@@ -42,7 +44,8 @@
     "rimraf": "^5.0.5",
     "rxjs": "^7.8.1",
     "twilio": "^4.23.0",
-    "typeorm": "^0.3.17"
+    "typeorm": "^0.3.17",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.3.0",

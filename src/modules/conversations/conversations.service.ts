@@ -1,5 +1,4 @@
-﻿
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Conversation } from './entities/conversation.entity';
@@ -54,13 +53,19 @@ export class ConversationsService {
       relations: ['contact', 'assigned_agent', 'messages'],
     });
     if (!conversation) {
-      // Usar NotFoundException para que el backend retorne 404
-      // y el frontend pueda manejarlo correctamente
-      // Importar NotFoundException si no está
-      // import { NotFoundException } from '@nestjs/common';
       throw new (require('@nestjs/common').NotFoundException)('Conversation not found');
     }
-    return conversation;
+    // Mapeo explícito para frontend
+    return {
+      id: conversation.id,
+      priority: conversation.priority,
+      status: conversation.status,
+      contact: conversation.contact,
+      assigned_agent: conversation.assigned_agent,
+      messages: conversation.messages,
+      updated_at: conversation.updated_at,
+      created_at: conversation.created_at,
+    };
   }
 
   async findByContact(contactId: string) {

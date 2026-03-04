@@ -1,9 +1,11 @@
+import { BadRequestException } from '@nestjs/common';
 import {
   Controller,
   Get,
   Post,
   Body,
   Patch,
+  Put,
   Param,
   Delete,
   ValidationPipe,
@@ -85,11 +87,40 @@ export class ConversationsController {
 
   @Post(':id/assign')
   @UseGuards(JwtAuthGuard)
-  assignAgent(
+  async assignAgent(
     @Param('id') id: string,
-    @Body() body: { agent_id: string },
+    @Body() body: { agentId: string },
   ) {
-    return this.conversationsService.assignAgent(id, body.agent_id);
+    await this.conversationsService.update(id, { assigned_agent_id: body.agentId });
+    return { id, assigned_agent_id: body.agentId, message: 'Agent assigned successfully' };
+  }
+
+  @Put(':id/priority')
+  @UseGuards(JwtAuthGuard)
+  async updatePriority(
+    @Param('id') id: string,
+    @Body() body: { priority: string },
+  ) {
+    const validPriorities = ['low', 'medium', 'high'];
+    if (!validPriorities.includes(body.priority)) {
+      throw new BadRequestException(`Invalid priority: ${body.priority}`);
+    }
+    await this.conversationsService.update(id, { priority: body.priority });
+    return { id, priority: body.priority, message: 'Priority updated successfully' };
+  }
+
+  @Put(':id/status')
+  @UseGuards(JwtAuthGuard)
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() body: { status: string },
+  ) {
+    const validStatuses = ['active', 'resolved'];
+    if (!validStatuses.includes(body.status)) {
+      throw new BadRequestException(`Invalid status: ${body.status}`);
+    }
+    await this.conversationsService.update(id, { status: body.status });
+    return { id, status: body.status, message: 'Status updated successfully' };
   }
 
   @Delete(':id')
@@ -136,31 +167,22 @@ export class ConversationsController {
       };
       const result = await this.messagesService.create(createMessageDto);
       // ...existing code...
-      if (conversation.channel === 'whatsapp' && createMessageDto.sender_type === 'agent') {
-        try {
-          const contact = conversation.contact || (await this.contactsService.findOne(conversation.contact_id));
-          if (contact && contact.phone_number) {
-            const sendResult = await this.whatsappService.sendMessage(contact.phone_number, createMessageDto.content);
-            if (sendResult && sendResult.success === false) {
-              this.logger.error('[WhatsApp] Error al enviar mensaje:', sendResult.error, sendResult);
-              return {
-                success: false,
-                error: sendResult.error || 'Error enviando mensaje a WhatsApp',
-                hint: sendResult.hint,
-                error_code: sendResult.error_code,
-                message: result,
-              };
-            } else {
-              this.logger.log('[WhatsApp] Mensaje enviado correctamente:', sendResult.whatsapp_message_id);
-            }
+      if (createMessageDto.sender_type === 'agent') {
+        const contact = conversation.contact || (await this.contactsService.findOne(conversation.contact?.id));
+        if (contact && contact.phone_number) {
+          const sendResult = await this.whatsappService.sendMessage(contact.phone_number, createMessageDto.content);
+          if (sendResult && sendResult.success === false) {
+            this.logger.error('[WhatsApp] Error al enviar mensaje:', sendResult.error, sendResult);
+            return {
+              success: false,
+              error: sendResult.error || 'Error enviando mensaje a WhatsApp',
+              hint: sendResult.hint,
+              error_code: sendResult.error_code,
+              message: result,
+            };
+          } else {
+            this.logger.log('[WhatsApp] Mensaje enviado correctamente:', sendResult.whatsapp_message_id);
           }
-        } catch (sendError) {
-          this.logger.error('[WhatsApp] Excepción al enviar mensaje:', sendError);
-          return {
-            success: false,
-            error: sendError?.message || 'Error enviando mensaje a WhatsApp',
-            message: result,
-          };
         }
       }
       return {

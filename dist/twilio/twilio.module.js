@@ -16,7 +16,7 @@ let TwilioModule = class TwilioModule {
 exports.TwilioModule = TwilioModule;
 exports.TwilioModule = TwilioModule = __decorate([
     (0, common_1.Module)({
-        imports: [messages_module_1.MessagesModule],
+        imports: [(0, common_1.forwardRef)(() => messages_module_1.MessagesModule)],
         providers: [twilio_service_1.TwilioService],
         controllers: [twilio_controller_1.TwilioController],
         exports: [twilio_service_1.TwilioService],

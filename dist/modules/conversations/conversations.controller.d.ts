@@ -19,12 +19,48 @@ export declare class ConversationsController {
     findAll(request: any): Promise<{
         conversations: any[];
     }>;
-    findOne(id: string): Promise<import("./entities/conversation.entity").Conversation>;
+    findOne(id: string): Promise<{
+        id: string;
+        priority: "low" | "medium" | "high";
+        status: "active" | "paused" | "resolved";
+        contact: import("../contacts/entities/contact.entity").Contact;
+        assigned_agent: import("../users/entities/user.entity").User;
+        messages: import("../messages/entities/message.entity").Message[];
+        updated_at: Date;
+        created_at: Date;
+    }>;
     findByContact(contactId: string): Promise<import("./entities/conversation.entity").Conversation[]>;
-    update(id: string, updateConversationDto: UpdateConversationDto): Promise<import("./entities/conversation.entity").Conversation>;
+    update(id: string, updateConversationDto: UpdateConversationDto): Promise<{
+        id: string;
+        priority: "low" | "medium" | "high";
+        status: "active" | "paused" | "resolved";
+        contact: import("../contacts/entities/contact.entity").Contact;
+        assigned_agent: import("../users/entities/user.entity").User;
+        messages: import("../messages/entities/message.entity").Message[];
+        updated_at: Date;
+        created_at: Date;
+    }>;
     assignAgent(id: string, body: {
-        agent_id: string;
-    }): Promise<import("./entities/conversation.entity").Conversation>;
+        agentId: string;
+    }): Promise<{
+        id: string;
+        assigned_agent_id: string;
+        message: string;
+    }>;
+    updatePriority(id: string, body: {
+        priority: string;
+    }): Promise<{
+        id: string;
+        priority: string;
+        message: string;
+    }>;
+    updateStatus(id: string, body: {
+        status: string;
+    }): Promise<{
+        id: string;
+        status: string;
+        message: string;
+    }>;
     remove(id: string): Promise<{
         success: boolean;
     }>;
@@ -34,12 +70,6 @@ export declare class ConversationsController {
         hint: string;
         error_code: number;
         message: any[];
-    } | {
-        success: boolean;
-        error: any;
-        message: any[];
-        hint?: undefined;
-        error_code?: undefined;
     } | {
         success: boolean;
         message: any[];

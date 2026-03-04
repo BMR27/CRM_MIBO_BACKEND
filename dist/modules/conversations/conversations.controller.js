@@ -15,6 +15,7 @@ var ConversationsController_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConversationsController = void 0;
 const common_1 = require("@nestjs/common");
+const common_2 = require("@nestjs/common");
 const conversations_service_1 = require("./conversations.service");
 const create_conversation_dto_1 = require("./dto/create-conversation.dto");
 const update_conversation_dto_1 = require("./dto/update-conversation.dto");
@@ -61,8 +62,25 @@ let ConversationsController = ConversationsController_1 = class ConversationsCon
     update(id, updateConversationDto) {
         return this.conversationsService.update(id, updateConversationDto);
     }
-    assignAgent(id, body) {
-        return this.conversationsService.assignAgent(id, body.agent_id);
+    async assignAgent(id, body) {
+        await this.conversationsService.update(id, { assigned_agent_id: body.agentId });
+        return { id, assigned_agent_id: body.agentId, message: 'Agent assigned successfully' };
+    }
+    async updatePriority(id, body) {
+        const validPriorities = ['low', 'medium', 'high'];
+        if (!validPriorities.includes(body.priority)) {
+            throw new common_1.BadRequestException(`Invalid priority: ${body.priority}`);
+        }
+        await this.conversationsService.update(id, { priority: body.priority });
+        return { id, priority: body.priority, message: 'Priority updated successfully' };
+    }
+    async updateStatus(id, body) {
+        const validStatuses = ['active', 'resolved'];
+        if (!validStatuses.includes(body.status)) {
+            throw new common_1.BadRequestException(`Invalid status: ${body.status}`);
+        }
+        await this.conversationsService.update(id, { status: body.status });
+        return { id, status: body.status, message: 'Status updated successfully' };
     }
     remove(id) {
         return this.conversationsService.remove(id);
@@ -102,33 +120,23 @@ let ConversationsController = ConversationsController_1 = class ConversationsCon
             };
             const result = await this.messagesService.create(createMessageDto);
             // ...existing code...
-            if (conversation.channel === 'whatsapp' && createMessageDto.sender_type === 'agent') {
-                try {
-                    const contact = conversation.contact || (await this.contactsService.findOne(conversation.contact_id));
-                    if (contact && contact.phone_number) {
-                        const sendResult = await this.whatsappService.sendMessage(contact.phone_number, createMessageDto.content);
-                        if (sendResult && sendResult.success === false) {
-                            this.logger.error('[WhatsApp] Error al enviar mensaje:', sendResult.error, sendResult);
-                            return {
-                                success: false,
-                                error: sendResult.error || 'Error enviando mensaje a WhatsApp',
-                                hint: sendResult.hint,
-                                error_code: sendResult.error_code,
-                                message: result,
-                            };
-                        }
-                        else {
-                            this.logger.log('[WhatsApp] Mensaje enviado correctamente:', sendResult.whatsapp_message_id);
-                        }
+            if (createMessageDto.sender_type === 'agent') {
+                const contact = conversation.contact || (await this.contactsService.findOne(conversation.contact?.id));
+                if (contact && contact.phone_number) {
+                    const sendResult = await this.whatsappService.sendMessage(contact.phone_number, createMessageDto.content);
+                    if (sendResult && sendResult.success === false) {
+                        this.logger.error('[WhatsApp] Error al enviar mensaje:', sendResult.error, sendResult);
+                        return {
+                            success: false,
+                            error: sendResult.error || 'Error enviando mensaje a WhatsApp',
+                            hint: sendResult.hint,
+                            error_code: sendResult.error_code,
+                            message: result,
+                        };
                     }
-                }
-                catch (sendError) {
-                    this.logger.error('[WhatsApp] Excepción al enviar mensaje:', sendError);
-                    return {
-                        success: false,
-                        error: sendError?.message || 'Error enviando mensaje a WhatsApp',
-                        message: result,
-                    };
+                    else {
+                        this.logger.log('[WhatsApp] Mensaje enviado correctamente:', sendResult.whatsapp_message_id);
+                    }
                 }
             }
             return {
@@ -146,83 +154,101 @@ let ConversationsController = ConversationsController_1 = class ConversationsCon
 };
 exports.ConversationsController = ConversationsController;
 __decorate([
-    (0, common_1.Get)(':id/messages'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __param(0, (0, common_1.Param)('id')),
+    (0, common_2.Get)(':id/messages'),
+    (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_2.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], ConversationsController.prototype, "getMessages", null);
 __decorate([
-    (0, common_1.Post)(),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __param(0, (0, common_1.Body)(common_1.ValidationPipe)),
+    (0, common_2.Post)(),
+    (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_2.Body)(common_2.ValidationPipe)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_conversation_dto_1.CreateConversationDto]),
     __metadata("design:returntype", void 0)
 ], ConversationsController.prototype, "create", null);
 __decorate([
-    (0, common_1.Get)(),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __param(0, (0, common_1.Req)()),
+    (0, common_2.Get)(),
+    (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_2.Req)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], ConversationsController.prototype, "findAll", null);
 __decorate([
-    (0, common_1.Get)(':id'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __param(0, (0, common_1.Param)('id')),
+    (0, common_2.Get)(':id'),
+    (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_2.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], ConversationsController.prototype, "findOne", null);
 __decorate([
-    (0, common_1.Get)('contact/:contactId'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __param(0, (0, common_1.Param)('contactId')),
+    (0, common_2.Get)('contact/:contactId'),
+    (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_2.Param)('contactId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], ConversationsController.prototype, "findByContact", null);
 __decorate([
-    (0, common_1.Patch)(':id'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Body)(common_1.ValidationPipe)),
+    (0, common_2.Patch)(':id'),
+    (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_2.Param)('id')),
+    __param(1, (0, common_2.Body)(common_2.ValidationPipe)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, update_conversation_dto_1.UpdateConversationDto]),
     __metadata("design:returntype", void 0)
 ], ConversationsController.prototype, "update", null);
 __decorate([
-    (0, common_1.Post)(':id/assign'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Body)()),
+    (0, common_2.Post)(':id/assign'),
+    (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_2.Param)('id')),
+    __param(1, (0, common_2.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, Object]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], ConversationsController.prototype, "assignAgent", null);
 __decorate([
-    (0, common_1.Delete)(':id'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __param(0, (0, common_1.Param)('id')),
+    (0, common_2.Put)(':id/priority'),
+    (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_2.Param)('id')),
+    __param(1, (0, common_2.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], ConversationsController.prototype, "updatePriority", null);
+__decorate([
+    (0, common_2.Put)(':id/status'),
+    (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_2.Param)('id')),
+    __param(1, (0, common_2.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], ConversationsController.prototype, "updateStatus", null);
+__decorate([
+    (0, common_2.Delete)(':id'),
+    (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_2.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], ConversationsController.prototype, "remove", null);
 __decorate([
-    (0, common_1.Post)(':id/messages'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Body)(common_1.ValidationPipe)),
-    __param(2, (0, common_1.Req)()),
+    (0, common_2.Post)(':id/messages'),
+    (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_2.Param)('id')),
+    __param(1, (0, common_2.Body)(common_2.ValidationPipe)),
+    __param(2, (0, common_2.Req)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, Object, Object]),
     __metadata("design:returntype", Promise)
 ], ConversationsController.prototype, "createMessageForConversation", null);
 exports.ConversationsController = ConversationsController = ConversationsController_1 = __decorate([
-    (0, common_1.Controller)('conversations'),
+    (0, common_2.Controller)('conversations'),
     __metadata("design:paramtypes", [conversations_service_1.ConversationsService,
         messages_service_1.MessagesService,
         contacts_service_1.ContactsService,
