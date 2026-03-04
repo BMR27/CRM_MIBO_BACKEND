@@ -2,15 +2,28 @@ interface Contacto {
   nombre: string;
   telefono: string;
 }
+
+// Helper para limpiar el nombre (fuera de la clase)
+function getNombreSinNumero(nombre: string) {
+  if (!nombre) return 'Usuario';
+  // Elimina números al inicio del nombre
+  return nombre.replace(/^\d+\s*/, '').trim();
+}
 import { Controller, Post, UploadedFile, UseInterceptors, Inject, Body, Req } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as XLSX from 'xlsx';
 import { TwilioService } from '../../twilio/twilio.service';
+import { ContactsService } from '../contacts/contacts.service';
+import { ConversationsService } from '../conversations/conversations.service';
+import { MessagesService } from './messages.service';
 
 @Controller('messages')
 export class MessagesBulkController {
   constructor(
-    @Inject(TwilioService) private readonly twilioService: TwilioService
+    @Inject(TwilioService) private readonly twilioService: TwilioService,
+    @Inject(ContactsService) private readonly contactsService: ContactsService,
+    @Inject(ConversationsService) private readonly conversationsService: ConversationsService,
+    @Inject(MessagesService) private readonly messagesService: MessagesService,
   ) {}
 
   @Post('bulk')
@@ -46,6 +59,23 @@ export class MessagesBulkController {
     for (const row of data as Contacto[]) {
       try {
         const to = String(row.telefono);
+        // 1. Buscar o crear contacto
+        let contact = await this.contactsService.findByPhoneNumber(to);
+        if (!contact) {
+          contact = await this.contactsService.create({
+            phone_number: to,
+            name: row.nombre || to,
+          });
+        }
+        // 2. Buscar o crear conversación
+        let conversations = await this.conversationsService.findByContact(contact.id);
+        let conversation;
+        if (conversations && conversations.length > 0) {
+          conversation = conversations[0];
+        } else {
+          conversation = await this.conversationsService.create({ contact_id: contact.id });
+        }
+        // 3. Enviar mensaje por WhatsApp
         const res = await this.twilioService.sendWhatsAppTemplate({
           to,
           from,
@@ -54,6 +84,15 @@ export class MessagesBulkController {
         });
         results.push({ to, status: 'sent', sid: res.sid });
         console.log(`Mensaje enviado a ${to}: SID ${res.sid}`);
+        // 4. Registrar mensaje en la conversación
+        await this.messagesService.create({
+          conversation_id: conversation.id,
+          sender_type: 'agent',
+          content: `Hola ${row.nombre || 'Usuario'} 👋\n¡Bienvenido/a! Estoy aquí para ayudarte con tus pedidos y soporte.`,
+          message_type: 'text',
+          is_from_whatsapp: false,
+          whatsapp_message_id: res.sid,
+        });
       } catch (err: any) {
         results.push({ to: String(row.telefono), status: 'error', error: err.message });
         console.log(`Error enviando a ${row.telefono}:`, err.message);

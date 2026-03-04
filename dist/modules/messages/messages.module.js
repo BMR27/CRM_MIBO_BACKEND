@@ -14,14 +14,18 @@ const messages_service_1 = require("./messages.service");
 const messages_controller_1 = require("./messages.controller");
 const messages_markRead_1 = require("./messages.markRead");
 const messages_bulk_controller_1 = require("./messages.bulk.controller");
-const common_2 = require("@nestjs/common");
+// ...existing code...
 const twilio_module_1 = require("../../twilio/twilio.module");
+const common_2 = require("@nestjs/common");
+const contacts_module_1 = require("../contacts/contacts.module");
+const conversations_module_1 = require("../conversations/conversations.module");
+// ...existing code...
 let MessagesModule = class MessagesModule {
 };
 exports.MessagesModule = MessagesModule;
 exports.MessagesModule = MessagesModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([message_entity_1.Message]), (0, common_2.forwardRef)(() => twilio_module_1.TwilioModule)],
+        imports: [typeorm_1.TypeOrmModule.forFeature([message_entity_1.Message]), (0, common_2.forwardRef)(() => twilio_module_1.TwilioModule), (0, common_2.forwardRef)(() => contacts_module_1.ContactsModule), (0, common_2.forwardRef)(() => conversations_module_1.ConversationsModule)],
         providers: [messages_service_1.MessagesService, messages_markRead_1.MessagesMarkReadService],
         controllers: [messages_controller_1.MessagesController, messages_bulk_controller_1.MessagesBulkController],
         exports: [messages_service_1.MessagesService],

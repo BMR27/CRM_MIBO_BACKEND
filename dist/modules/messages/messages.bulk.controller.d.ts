@@ -3,9 +3,15 @@ interface Contacto {
     telefono: string;
 }
 import { TwilioService } from '../../twilio/twilio.service';
+import { ContactsService } from '../contacts/contacts.service';
+import { ConversationsService } from '../conversations/conversations.service';
+import { MessagesService } from './messages.service';
 export declare class MessagesBulkController {
     private readonly twilioService;
-    constructor(twilioService: TwilioService);
+    private readonly contactsService;
+    private readonly conversationsService;
+    private readonly messagesService;
+    constructor(twilioService: TwilioService, contactsService: ContactsService, conversationsService: ConversationsService, messagesService: MessagesService);
     uploadBulk(file: Express.Multer.File, body?: any, req?: any): Promise<{
         error: string;
         success?: undefined;

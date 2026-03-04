@@ -46,13 +46,26 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MessagesBulkController = void 0;
+// Helper para limpiar el nombre (fuera de la clase)
+function getNombreSinNumero(nombre) {
+    if (!nombre)
+        return 'Usuario';
+    // Elimina números al inicio del nombre
+    return nombre.replace(/^\d+\s*/, '').trim();
+}
 const common_1 = require("@nestjs/common");
 const platform_express_1 = require("@nestjs/platform-express");
 const XLSX = __importStar(require("xlsx"));
 const twilio_service_1 = require("../../twilio/twilio.service");
+const contacts_service_1 = require("../contacts/contacts.service");
+const conversations_service_1 = require("../conversations/conversations.service");
+const messages_service_1 = require("./messages.service");
 let MessagesBulkController = class MessagesBulkController {
-    constructor(twilioService) {
+    constructor(twilioService, contactsService, conversationsService, messagesService) {
         this.twilioService = twilioService;
+        this.contactsService = contactsService;
+        this.conversationsService = conversationsService;
+        this.messagesService = messagesService;
     }
     async uploadBulk(file, body, req) {
         let data = [];
@@ -85,6 +98,24 @@ let MessagesBulkController = class MessagesBulkController {
         for (const row of data) {
             try {
                 const to = String(row.telefono);
+                // 1. Buscar o crear contacto
+                let contact = await this.contactsService.findByPhoneNumber(to);
+                if (!contact) {
+                    contact = await this.contactsService.create({
+                        phone_number: to,
+                        name: row.nombre || to,
+                    });
+                }
+                // 2. Buscar o crear conversación
+                let conversations = await this.conversationsService.findByContact(contact.id);
+                let conversation;
+                if (conversations && conversations.length > 0) {
+                    conversation = conversations[0];
+                }
+                else {
+                    conversation = await this.conversationsService.create({ contact_id: contact.id });
+                }
+                // 3. Enviar mensaje por WhatsApp
                 const res = await this.twilioService.sendWhatsAppTemplate({
                     to,
                     from,
@@ -93,6 +124,15 @@ let MessagesBulkController = class MessagesBulkController {
                 });
                 results.push({ to, status: 'sent', sid: res.sid });
                 console.log(`Mensaje enviado a ${to}: SID ${res.sid}`);
+                // 4. Registrar mensaje en la conversación
+                await this.messagesService.create({
+                    conversation_id: conversation.id,
+                    sender_type: 'agent',
+                    content: `Hola ${row.nombre || 'Usuario'} 👋\n¡Bienvenido/a! Estoy aquí para ayudarte con tus pedidos y soporte.`,
+                    message_type: 'text',
+                    is_from_whatsapp: false,
+                    whatsapp_message_id: res.sid,
+                });
             }
             catch (err) {
                 results.push({ to: String(row.telefono), status: 'error', error: err.message });
@@ -117,6 +157,12 @@ __decorate([
 exports.MessagesBulkController = MessagesBulkController = __decorate([
     (0, common_1.Controller)('messages'),
     __param(0, (0, common_1.Inject)(twilio_service_1.TwilioService)),
-    __metadata("design:paramtypes", [twilio_service_1.TwilioService])
+    __param(1, (0, common_1.Inject)(contacts_service_1.ContactsService)),
+    __param(2, (0, common_1.Inject)(conversations_service_1.ConversationsService)),
+    __param(3, (0, common_1.Inject)(messages_service_1.MessagesService)),
+    __metadata("design:paramtypes", [twilio_service_1.TwilioService,
+        contacts_service_1.ContactsService,
+        conversations_service_1.ConversationsService,
+        messages_service_1.MessagesService])
 ], MessagesBulkController);
 //# sourceMappingURL=messages.bulk.controller.js.map
