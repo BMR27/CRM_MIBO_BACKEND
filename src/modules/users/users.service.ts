@@ -5,12 +5,15 @@ import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcryptjs';
+import { Conversation } from '../conversations/entities/conversation.entity';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(Conversation)
+    private conversationRepository: Repository<Conversation>,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -40,8 +43,8 @@ export class UsersService {
     });
   }
 
-  async findAgents(): Promise<User[]> {
-    return this.usersRepository.find({
+  async findAgents(): Promise<any[]> {
+    const agents = await this.usersRepository.find({
       relations: ['role'],
       select: {
         id: true,
@@ -52,6 +55,23 @@ export class UsersService {
         created_at: true,
       },
     });
+
+    for (const agent of agents) {
+      const total = await this.conversationRepository.count({
+        where: { assigned_agent_id: agent.id },
+      });
+      const active = await this.conversationRepository.count({
+        where: { assigned_agent_id: agent.id, status: 'active' },
+      });
+      const resolved = await this.conversationRepository.count({
+        where: { assigned_agent_id: agent.id, status: 'resolved' },
+      });
+      (agent as any).total_conversations = total;
+      (agent as any).active_conversations = active;
+      (agent as any).resolved_conversations = resolved;
+    }
+
+    return agents;
   }
 
   async findOne(id: string): Promise<User | null> {

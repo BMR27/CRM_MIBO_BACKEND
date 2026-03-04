@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { RolesService } from './modules/roles/roles.service';
+import 'dotenv/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -33,6 +34,7 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   const port = process.env.PORT || 3001;
+  console.log('DATABASE_URL:', process.env.DATABASE_URL);
   await app.listen(port, async () => {
     console.log(`Server running on http://localhost:${port}`);
     console.log(`Swagger docs available at http://localhost:${port}/api/docs`);

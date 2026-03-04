@@ -4,6 +4,7 @@ const core_1 = require("@nestjs/core");
 const swagger_1 = require("@nestjs/swagger");
 const app_module_1 = require("./app.module");
 const roles_service_1 = require("./modules/roles/roles.service");
+require("dotenv/config");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     // Set global prefix
@@ -30,6 +31,7 @@ async function bootstrap() {
     const document = swagger_1.SwaggerModule.createDocument(app, config);
     swagger_1.SwaggerModule.setup('api/docs', app, document);
     const port = process.env.PORT || 3001;
+    console.log('DATABASE_URL:', process.env.DATABASE_URL);
     await app.listen(port, async () => {
         console.log(`Server running on http://localhost:${port}`);
         console.log(`Swagger docs available at http://localhost:${port}/api/docs`);

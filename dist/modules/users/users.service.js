@@ -51,9 +51,11 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const user_entity_1 = require("./entities/user.entity");
 const bcrypt = __importStar(require("bcryptjs"));
+const conversation_entity_1 = require("../conversations/entities/conversation.entity");
 let UsersService = class UsersService {
-    constructor(usersRepository) {
+    constructor(usersRepository, conversationRepository) {
         this.usersRepository = usersRepository;
+        this.conversationRepository = conversationRepository;
     }
     async create(createUserDto) {
         // Hash password
@@ -80,7 +82,7 @@ let UsersService = class UsersService {
         });
     }
     async findAgents() {
-        return this.usersRepository.find({
+        const agents = await this.usersRepository.find({
             relations: ['role'],
             select: {
                 id: true,
@@ -91,6 +93,21 @@ let UsersService = class UsersService {
                 created_at: true,
             },
         });
+        for (const agent of agents) {
+            const total = await this.conversationRepository.count({
+                where: { assigned_agent_id: agent.id },
+            });
+            const active = await this.conversationRepository.count({
+                where: { assigned_agent_id: agent.id, status: 'active' },
+            });
+            const resolved = await this.conversationRepository.count({
+                where: { assigned_agent_id: agent.id, status: 'resolved' },
+            });
+            agent.total_conversations = total;
+            agent.active_conversations = active;
+            agent.resolved_conversations = resolved;
+        }
+        return agents;
     }
     async findOne(id) {
         return this.usersRepository.findOne({
@@ -152,6 +169,8 @@ exports.UsersService = UsersService;
 exports.UsersService = UsersService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
-    __metadata("design:paramtypes", [typeorm_2.Repository])
+    __param(1, (0, typeorm_1.InjectRepository)(conversation_entity_1.Conversation)),
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository])
 ], UsersService);
 //# sourceMappingURL=users.service.js.map

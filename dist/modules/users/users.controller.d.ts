@@ -18,7 +18,7 @@ export declare class UsersController {
     private usersService;
     constructor(usersService: UsersService);
     getUsers(): Promise<import("./entities/user.entity").User[]>;
-    getAgents(): Promise<import("./entities/user.entity").User[]>;
+    getAgents(): Promise<any[]>;
     getUserById(id: string): Promise<import("./entities/user.entity").User>;
     createUser(body: CreateUserDto): Promise<import("./entities/user.entity").User>;
     updateUser(id: string, body: UpdateUserDto): Promise<import("./entities/user.entity").User>;

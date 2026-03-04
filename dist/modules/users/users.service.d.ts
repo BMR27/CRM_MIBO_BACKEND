@@ -2,12 +2,14 @@ import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Conversation } from '../conversations/entities/conversation.entity';
 export declare class UsersService {
     private usersRepository;
-    constructor(usersRepository: Repository<User>);
+    private conversationRepository;
+    constructor(usersRepository: Repository<User>, conversationRepository: Repository<Conversation>);
     create(createUserDto: CreateUserDto): Promise<User>;
     findAll(): Promise<User[]>;
-    findAgents(): Promise<User[]>;
+    findAgents(): Promise<any[]>;
     findOne(id: string): Promise<User | null>;
     findById(id: string): Promise<User | null>;
     findByEmail(email: string): Promise<User | null>;
