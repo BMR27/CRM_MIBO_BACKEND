@@ -51,11 +51,14 @@ export class ConversationsController {
   async findAll(@Req() request: any) {
     const user = request.user;
     const userRole = user?.role;
+    console.log('[CONV] user.id:', user?.id, '| user.role:', userRole);
     let conversations = [];
     if (userRole === 'agent') {
       conversations = await this.conversationsService.findByAssignedAgent(user.id);
+      console.log('[CONV] Conversations for agent', user.id, ':', conversations.map(c => c.id));
     } else {
       conversations = await this.conversationsService.findAll();
+      console.log('[CONV] Conversations for non-agent:', conversations.length);
     }
     // Asegura que unread_count esté presente en la respuesta
     return { conversations: conversations.map(conv => ({

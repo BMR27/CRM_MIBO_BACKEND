@@ -9,7 +9,8 @@ function getNombreSinNumero(nombre: string) {
   // Elimina números al inicio del nombre
   return nombre.replace(/^\d+\s*/, '').trim();
 }
-import { Controller, Post, UploadedFile, UseInterceptors, Inject, Body, Req } from '@nestjs/common';
+import { Controller, Post, UploadedFile, UseInterceptors, Inject, Body, Req, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as XLSX from 'xlsx';
 import { TwilioService } from '../../twilio/twilio.service';
@@ -27,6 +28,7 @@ export class MessagesBulkController {
   ) {}
 
   @Post('bulk')
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('file'))
   async uploadBulk(@UploadedFile() file: Express.Multer.File, @Body() body?: any, @Req() req?: any) {
     let data: Contacto[] = [];

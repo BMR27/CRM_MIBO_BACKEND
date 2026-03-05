@@ -54,6 +54,7 @@ function getNombreSinNumero(nombre) {
     return nombre.replace(/^\d+\s*/, '').trim();
 }
 const common_1 = require("@nestjs/common");
+const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const platform_express_1 = require("@nestjs/platform-express");
 const XLSX = __importStar(require("xlsx"));
 const twilio_service_1 = require("../../twilio/twilio.service");
@@ -113,7 +114,10 @@ let MessagesBulkController = class MessagesBulkController {
                     conversation = conversations[0];
                 }
                 else {
-                    conversation = await this.conversationsService.create({ contact_id: contact.id });
+                    // Asignar el agente logueado
+                    const assigned_agent_id = req?.user?.id;
+                    console.log('Agente asignado a la conversación:', assigned_agent_id);
+                    conversation = await this.conversationsService.create({ contact_id: contact.id, assigned_agent_id });
                 }
                 // 3. Enviar mensaje por WhatsApp
                 const res = await this.twilioService.sendWhatsAppTemplate({
@@ -146,6 +150,7 @@ let MessagesBulkController = class MessagesBulkController {
 exports.MessagesBulkController = MessagesBulkController;
 __decorate([
     (0, common_1.Post)('bulk'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file')),
     __param(0, (0, common_1.UploadedFile)()),
     __param(1, (0, common_1.Body)()),
