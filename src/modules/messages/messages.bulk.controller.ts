@@ -73,7 +73,10 @@ export class MessagesBulkController {
         if (conversations && conversations.length > 0) {
           conversation = conversations[0];
         } else {
-          conversation = await this.conversationsService.create({ contact_id: contact.id });
+          // Asignar el agente logueado
+          const assigned_agent_id = req?.user?.id;
+          console.log('Agente asignado a la conversación:', assigned_agent_id);
+          conversation = await this.conversationsService.create({ contact_id: contact.id, assigned_agent_id });
         }
         // 3. Enviar mensaje por WhatsApp
         const res = await this.twilioService.sendWhatsAppTemplate({
