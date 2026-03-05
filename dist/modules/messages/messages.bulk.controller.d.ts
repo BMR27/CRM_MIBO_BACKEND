@@ -1,6 +1,7 @@
 interface Contacto {
     nombre: string;
     telefono: string;
+    [key: string]: any;
 }
 import { TwilioService } from '../../twilio/twilio.service';
 import { ContactsService } from '../contacts/contacts.service';

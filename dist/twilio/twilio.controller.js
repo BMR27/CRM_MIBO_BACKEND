@@ -25,8 +25,15 @@ let TwilioController = class TwilioController {
      * Endpoint para obtener plantillas aprobadas de WhatsApp en Twilio
      * POST /api/twilio/wa-templates { serviceSid }
      */
-    async getApprovedWATemplates() {
-        return this.twilioService.listApprovedWATemplates();
+    async getApprovedWATemplates(body) {
+        try {
+            // Si se recibe serviceSid, pásalo al servicio
+            return await this.twilioService.listApprovedWATemplates(body?.serviceSid);
+        }
+        catch (err) {
+            console.error('Error obteniendo plantillas Twilio:', err?.response?.data || err?.message || err);
+            throw { statusCode: 500, message: err?.response?.data?.message || err?.message || 'Internal server error' };
+        }
     }
     async sendWATemplate(body) {
         // body: { to, from, contentSid, variables, conversation_id, sender_id }
@@ -69,8 +76,9 @@ let TwilioController = class TwilioController {
 exports.TwilioController = TwilioController;
 __decorate([
     (0, common_1.Post)('wa-templates'),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], TwilioController.prototype, "getApprovedWATemplates", null);
 __decorate([

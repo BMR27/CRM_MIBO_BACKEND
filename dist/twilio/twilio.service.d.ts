@@ -4,7 +4,7 @@ export declare class TwilioService {
     /**
      * Lista plantillas aprobadas de WhatsApp en Twilio usando Content API vía HTTP
      */
-    listApprovedWATemplates(): Promise<any>;
+    listApprovedWATemplates(serviceSid?: string): Promise<any>;
     sendWhatsAppTemplate({ to, from, contentSid, variables, }: {
         to: string;
         from: string;

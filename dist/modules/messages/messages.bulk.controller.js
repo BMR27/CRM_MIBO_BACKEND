@@ -92,8 +92,8 @@ let MessagesBulkController = class MessagesBulkController {
             console.log('No contacts provided');
             return { error: 'No contacts provided' };
         }
-        // Configuración de la plantilla aprobada
-        const contentSid = 'HX99ead19f74793c6b5f0e1777523f1815'; // bienvenido_logi
+        // Usar contentSid o templateSid recibido en el body si existe, si no usar el default bienvenida_logi
+        const contentSid = body.contentSid || body.templateSid || 'HX99ead19f74793c6b5f0e1777523f1815';
         const from = process.env.TWILIO_WHATSAPP_FROM;
         const results = [];
         for (const row of data) {
@@ -128,11 +128,31 @@ let MessagesBulkController = class MessagesBulkController {
                 });
                 results.push({ to, status: 'sent', sid: res.sid });
                 console.log(`Mensaje enviado a ${to}: SID ${res.sid}`);
-                // 4. Registrar mensaje en la conversación
+                // 4. Registrar mensaje en la conversación usando la plantilla y parámetros
+                let mensajePlantilla = '';
+                if (contentSid === 'HX99ead19f74793c6b5f0e1777523f1815') {
+                    // bienvenida_logi
+                    mensajePlantilla = `Hola ${row.nombre || 'Usuario'} 👋\n¡Bienvenido/a! Estoy aquí para ayudarte con tus pedidos y soporte.`;
+                }
+                else if (contentSid === 'HX63433782a538101c777138bca250cc54') {
+                    // lm_buen_dia_empaque
+                    mensajePlantilla = `Buenos días, ${row.CLIENTE}. Le hablamos de Logimarket.\nRecibimos su pedido de ${row.PRODUCTS_A}, con número de orden ${row.ORDEN} y se encuentra en proceso de empaque.\nLe avisaremos en cuanto esté listo para su entrega. ¡Gracias por su preferencia!`;
+                }
+                else if (contentSid === 'HX9efa55d55fa323d5efa09d82d0a1c484') {
+                    // lm_buen_dia_en_entrega
+                    mensajePlantilla = `Buen día, ${row.CLIENTE}. Le hablamos de Logimarket.\nSu pedido con número de orden ${row.ORDEN}, producto ${row.PRODUCTS_A}, se encuentra en proceso de entrega.\nSi desea compartir alguna indicación adicional para la entrega, por favor responda a este mensaje. ¡Gracias!`;
+                }
+                else if (contentSid === 'HX43be0016968ad04dbe7a7a2408a5d24b') {
+                    // lm_buen_dia_proximo_entregar_confirma
+                    mensajePlantilla = `Buenos días, ${row.CLIENTE}. Le hablamos de Logimarket.\nSu pedido con número de orden ${row.ORDEN}, producto ${row.PRODUCTS_A} está próximo a entregarse. ¿Puede confirmar su disponibilidad para recibirlo el día de hoy?\nQuedamos atentos a su respuesta. ¡Gracias!`;
+                }
+                else {
+                    mensajePlantilla = `Mensaje enviado.`;
+                }
                 await this.messagesService.create({
                     conversation_id: conversation.id,
                     sender_type: 'agent',
-                    content: `Hola ${row.nombre || 'Usuario'} 👋\n¡Bienvenido/a! Estoy aquí para ayudarte con tus pedidos y soporte.`,
+                    content: mensajePlantilla,
                     message_type: 'text',
                     is_from_whatsapp: false,
                     whatsapp_message_id: res.sid,

@@ -17,14 +17,23 @@ export class TwilioService {
   /**
    * Lista plantillas aprobadas de WhatsApp en Twilio usando Content API vía HTTP
    */
-  async listApprovedWATemplates() {
+  async listApprovedWATemplates(serviceSid?: string) {
     const accountSid = process.env.TWILIO_ACCOUNT_SID!;
     const authToken = process.env.TWILIO_AUTH_TOKEN!;
-    const url = `https://content.twilio.com/v1/WhatsApp/Templates?Status=approved`;
-    const response = await axios.get(url, {
-      auth: { username: accountSid, password: authToken }
-    });
-    return response.data.templates || [];
+    // Si se recibe serviceSid, úsalo en la URL (ajusta según tu cuenta Twilio)
+    let url = `https://content.twilio.com/v1/WhatsApp/Templates?Status=approved`;
+    if (serviceSid) {
+      url = `https://content.twilio.com/v1/Services/${serviceSid}/Templates?Status=approved`;
+    }
+    try {
+      const response = await axios.get(url, {
+        auth: { username: accountSid, password: authToken }
+      });
+      return response.data.templates || [];
+    } catch (err: any) {
+      console.error('Twilio API error:', err?.response?.data || err?.message || err);
+      throw err;
+    }
   }
 
   async sendWhatsAppTemplate({

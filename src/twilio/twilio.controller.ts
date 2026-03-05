@@ -16,8 +16,14 @@ export class TwilioController {
    * POST /api/twilio/wa-templates { serviceSid }
    */
   @Post('wa-templates')
-  async getApprovedWATemplates() {
-    return this.twilioService.listApprovedWATemplates();
+  async getApprovedWATemplates(@Body() body: any) {
+    try {
+      // Si se recibe serviceSid, pásalo al servicio
+      return await this.twilioService.listApprovedWATemplates(body?.serviceSid);
+    } catch (err: any) {
+      console.error('Error obteniendo plantillas Twilio:', err?.response?.data || err?.message || err);
+      throw { statusCode: 500, message: err?.response?.data?.message || err?.message || 'Internal server error' };
+    }
   }
 
 

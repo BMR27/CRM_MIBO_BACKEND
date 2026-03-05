@@ -8,7 +8,7 @@ export declare class TwilioController {
      * Endpoint para obtener plantillas aprobadas de WhatsApp en Twilio
      * POST /api/twilio/wa-templates { serviceSid }
      */
-    getApprovedWATemplates(): Promise<any>;
+    getApprovedWATemplates(body: any): Promise<any>;
     sendWATemplate(body: any): Promise<{
         success: boolean;
         twilio: any;
