@@ -146,6 +146,10 @@ let MessagesBulkController = class MessagesBulkController {
                     // lm_buen_dia_proximo_entregar_confirma
                     mensajePlantilla = `Buenos días, ${row.CLIENTE}. Le hablamos de Logimarket.\nSu pedido con número de orden ${row.ORDEN}, producto ${row.PRODUCTS_A} está próximo a entregarse. ¿Puede confirmar su disponibilidad para recibirlo el día de hoy?\nQuedamos atentos a su respuesta. ¡Gracias!`;
                 }
+                else if (contentSid === 'HXdf73cf1db9d8dc586d94d576fa2e140c') {
+                    // lm_mensajeria_disponibilidad_paquete
+                    mensajePlantilla = `Estimado/a ${row.CLIENTE},\n\nSoy de mensajería Logimarket. Deseo que se encuentre bien.\nLe escribo porque aún tenemos su paquete de ${row.PRODUCTS_A}.\nSi ya está en condiciones de recibirlo, por favor confírmenos su disponibilidad.\n\n¡Gracias!`;
+                }
                 else {
                     mensajePlantilla = `Mensaje enviado.`;
                 }
