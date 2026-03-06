@@ -54,6 +54,9 @@ export class CreateMessageDto {
   metadata?: Record<string, any>;
 
   @IsOptional()
+  created_at?: Date;
+
+  @IsOptional()
   @IsBoolean()
   is_from_whatsapp?: boolean;
 

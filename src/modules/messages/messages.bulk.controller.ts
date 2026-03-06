@@ -82,11 +82,31 @@ export class MessagesBulkController {
           conversation = await this.conversationsService.create({ contact_id: contact.id, assigned_agent_id });
         }
         // 3. Enviar mensaje por WhatsApp
+        let variablesToSend = [row.nombre || 'Usuario'];
+        // Si la plantilla requiere producto, agregarlo y forzar ambos parámetros
+        if (contentSid === 'HXdf73cf1db9d8dc586d94d576fa2e140c') {
+          const producto = row.PRODUCTOS_A || row.PRODUCTS_A || row.producto || '';
+          variablesToSend = [row.nombre || 'Usuario', producto];
+        } else if (contentSid === 'HX9efa55d55fa323d5efa09d82d0a1c484') {
+          // lm_buen_dia_en_entrega: nombre, orden, producto (todos como string)
+          const producto = String(row.PRODUCTOS_A || row.PRODUCTS_A || row.producto || '');
+          const orden = String(row.ORDEN || '');
+          const nombre = String(row.nombre || 'Usuario');
+          variablesToSend = [nombre, orden, producto];
+        } else if ([
+          'HX63433782a538101c777138bca250cc54', // lm_buen_dia_empaque
+          'HX43be0016968ad04dbe7a7a2408a5d24b' // lm_buen_dia_proximo_entregar_confirma
+        ].includes(contentSid)) {
+          const producto = row.PRODUCTOS_A || row.PRODUCTS_A || row.producto || '';
+          variablesToSend.push(producto);
+        }
+        // Log explícito para depuración
+        console.log('Variables enviadas a Twilio:', variablesToSend);
         const res = await this.twilioService.sendWhatsAppTemplate({
           to,
           from,
           contentSid,
-          variables: [row.nombre || 'Usuario'],
+          variables: variablesToSend,
         });
         results.push({ to, status: 'sent', sid: res.sid });
         console.log(`Mensaje enviado a ${to}: SID ${res.sid}`);
@@ -97,16 +117,20 @@ export class MessagesBulkController {
           mensajePlantilla = `Hola ${row.nombre || 'Usuario'} 👋\n¡Bienvenido/a! Estoy aquí para ayudarte con tus pedidos y soporte.`;
         } else if (contentSid === 'HX63433782a538101c777138bca250cc54') {
           // lm_buen_dia_empaque
-          mensajePlantilla = `Buenos días, ${row.CLIENTE}. Le hablamos de Logimarket.\nRecibimos su pedido de ${row.PRODUCTS_A}, con número de orden ${row.ORDEN} y se encuentra en proceso de empaque.\nLe avisaremos en cuanto esté listo para su entrega. ¡Gracias por su preferencia!`;
+          const producto = row.PRODUCTS_A || row.PRODUCTOS_A || row.producto || '';
+          mensajePlantilla = `Buenos días, ${row.CLIENTE}. Le hablamos de Logimarket.\nRecibimos su pedido de ${producto}, con número de orden ${row.ORDEN} y se encuentra en proceso de empaque.\nLe avisaremos en cuanto esté listo para su entrega. ¡Gracias por su preferencia!`;
         } else if (contentSid === 'HX9efa55d55fa323d5efa09d82d0a1c484') {
           // lm_buen_dia_en_entrega
-          mensajePlantilla = `Buen día, ${row.CLIENTE}. Le hablamos de Logimarket.\nSu pedido con número de orden ${row.ORDEN}, producto ${row.PRODUCTS_A}, se encuentra en proceso de entrega.\nSi desea compartir alguna indicación adicional para la entrega, por favor responda a este mensaje. ¡Gracias!`;
+          const producto = row.PRODUCTOS_A || row.PRODUCTS_A || row.producto || '';
+          mensajePlantilla = `Buen día, ${row.CLIENTE}. Le hablamos de Logimarket.\nSu pedido con número de orden ${row.ORDEN}, producto ${producto}, se encuentra en proceso de entrega.\nSi desea compartir alguna indicación adicional para la entrega, por favor responda a este mensaje. ¡Gracias!`;
         } else if (contentSid === 'HX43be0016968ad04dbe7a7a2408a5d24b') {
           // lm_buen_dia_proximo_entregar_confirma
-          mensajePlantilla = `Buenos días, ${row.CLIENTE}. Le hablamos de Logimarket.\nSu pedido con número de orden ${row.ORDEN}, producto ${row.PRODUCTS_A} está próximo a entregarse. ¿Puede confirmar su disponibilidad para recibirlo el día de hoy?\nQuedamos atentos a su respuesta. ¡Gracias!`;
+          const producto = row.PRODUCTOS_A || row.PRODUCTS_A || row.producto || '';
+          mensajePlantilla = `Buenos días, ${row.CLIENTE}. Le hablamos de Logimarket.\nSu pedido con número de orden ${row.ORDEN}, producto ${producto} está próximo a entregarse. ¿Puede confirmar su disponibilidad para recibirlo el día de hoy?\nQuedamos atentos a su respuesta. ¡Gracias!`;
         } else if (contentSid === 'HXdf73cf1db9d8dc586d94d576fa2e140c') {
           // lm_mensajeria_disponibilidad_paquete
-          mensajePlantilla = `Estimado/a ${row.CLIENTE},\n\nSoy de mensajería Logimarket. Deseo que se encuentre bien.\nLe escribo porque aún tenemos su paquete de ${row.PRODUCTS_A}.\nSi ya está en condiciones de recibirlo, por favor confírmenos su disponibilidad.\n\n¡Gracias!`;
+          const producto = row.PRODUCTOS_A || row.PRODUCTS_A || row.producto || '';
+          mensajePlantilla = `Estimado/a ${row.CLIENTE},\n\nSoy de mensajería Logimarket. Deseo que se encuentre bien.\nLe escribo porque aún tenemos su paquete de ${producto}.\nSi ya está en condiciones de recibirlo, por favor confírmenos su disponibilidad.\n\n¡Gracias!`;
         } else {
           mensajePlantilla = `Mensaje enviado.`;
         }
@@ -117,6 +141,7 @@ export class MessagesBulkController {
           message_type: 'text',
           is_from_whatsapp: false,
           whatsapp_message_id: res.sid,
+          created_at: new Date(),
         });
       } catch (err: any) {
         results.push({ to: String(row.telefono), status: 'error', error: err.message });

@@ -73,6 +73,10 @@ __decorate([
 ], CreateMessageDto.prototype, "metadata", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Date)
+], CreateMessageDto.prototype, "created_at", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], CreateMessageDto.prototype, "is_from_whatsapp", void 0);

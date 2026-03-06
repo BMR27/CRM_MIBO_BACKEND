@@ -11,6 +11,7 @@ export declare class CreateMessageDto {
     media_caption?: string;
     media_url?: string;
     metadata?: Record<string, any>;
+    created_at?: Date;
     is_from_whatsapp?: boolean;
     whatsapp_message_id?: string;
 }
