@@ -71,6 +71,6 @@ export declare class WhatsappService {
     getPhoneNumbers(): Promise<any[]>;
     private getCloudMessageText;
     private parseCloudMessage;
-    private normalizePhoneNumber;
+    normalizePhoneNumber(value: string): string;
 }
 //# sourceMappingURL=whatsapp.service.d.ts.map

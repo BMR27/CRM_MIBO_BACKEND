@@ -80,8 +80,12 @@ let ConversationsService = class ConversationsService {
         });
     }
     async findByAssignedAgent(agentId) {
+        // Mostrar conversaciones asignadas al agente o sin asignación
         return this.conversationRepository.find({
-            where: { assigned_agent_id: agentId },
+            where: [
+                { assigned_agent_id: agentId },
+                { assigned_agent_id: null },
+            ],
             relations: ['contact', 'assigned_agent', 'messages'],
             order: { updated_at: 'DESC' },
         });

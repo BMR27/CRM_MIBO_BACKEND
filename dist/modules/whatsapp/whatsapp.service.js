@@ -21,6 +21,7 @@ const contacts_service_1 = require("../contacts/contacts.service");
 const conversations_service_1 = require("../conversations/conversations.service");
 const messages_service_1 = require("../messages/messages.service");
 const stream_1 = require("stream");
+const phone_1 = require("../../lib/phone");
 let WhatsappService = WhatsappService_1 = class WhatsappService {
     constructor(configService, contactsService, conversationsService, messagesService) {
         this.configService = configService;
@@ -98,7 +99,7 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
                             continue;
                         }
                         const normalizedPhone = this.normalizePhoneNumber(senderId);
-                        await this.processIncomingMessage(parsed.content, `whatsapp:+${normalizedPhone}`, messageId, {
+                        await this.processIncomingMessage(parsed.content, normalizedPhone, messageId, {
                             message_type: parsed.message_type,
                             media_id: parsed.media?.id,
                             media_mime_type: parsed.media?.mime_type,
@@ -117,7 +118,8 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
     }
     async processIncomingMessage(messageBody, senderPhoneNumber, messageId, extra) {
         try {
-            const contact = await this.contactsService.findOrCreateByPhone(senderPhoneNumber);
+            const normalizedPhone = this.normalizePhoneNumber(senderPhoneNumber);
+            const contact = await this.contactsService.findOrCreateByPhone(normalizedPhone);
             const conversations = await this.conversationsService.findByContact(contact.id);
             let activeConversation = null;
             if (conversations && conversations.length > 0) {
@@ -156,23 +158,18 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
     }
     async sendMessage(phoneNumber, message) {
         try {
-            const cleanPhone = this.normalizePhoneNumber(phoneNumber);
-            // Forzar uso de Twilio SDK para texto plano
+            const normalizedPhone = this.normalizePhoneNumber(phoneNumber);
             if (this.twilioClient && this.twilioPhoneNumber) {
-                let formattedPhone = phoneNumber;
-                if (!formattedPhone.startsWith('whatsapp:+')) {
-                    formattedPhone = `whatsapp:+${cleanPhone}`;
-                }
+                // Usar el valor normalizado directamente, sin duplicar el prefijo
                 try {
                     const response = await this.twilioClient.messages.create({
                         from: `whatsapp:${this.twilioPhoneNumber}`,
-                        to: formattedPhone,
+                        to: normalizedPhone,
                         body: message,
                     });
-                    this.logger.log(`Message sent to ${phoneNumber}, SID: ${response.sid}`);
-                    // Guardar el mensaje enviado por el agente inmediatamente
-                    // Buscar la conversación activa por el número de teléfono
-                    const contact = await this.contactsService.findOrCreateByPhone(phoneNumber);
+                    this.logger.log(`Message sent to ${normalizedPhone}, SID: ${response.sid}`);
+                    // Save agent message to the correct conversation
+                    const contact = await this.contactsService.findOrCreateByPhone(normalizedPhone);
                     const conversations = await this.conversationsService.findByContact(contact.id);
                     let activeConversation = null;
                     if (conversations && conversations.length > 0) {
@@ -421,9 +418,14 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
             return [];
         if (Array.isArray(variables))
             return variables.map(v => String(v));
-        return Object.keys(variables)
-            .sort()
-            .map(k => String(variables[k]));
+        // Si es objeto, devolver los valores en orden de las claves numéricas
+        if (typeof variables === 'object') {
+            // Si es un objeto tipo {"1": "Dalia", "2": "Kit Kat"}, devolver los valores en orden
+            return Object.keys(variables)
+                .sort((a, b) => Number(a) - Number(b))
+                .map(k => String(variables[k]));
+        }
+        return [];
     }
     async sendCloudTextMessage(cleanPhone, message) {
         // Usar Twilio SDK para enviar texto plano si está configurado
@@ -476,17 +478,15 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
             type: 'template',
             template: {
                 name: templateName,
-                language: { code: this.cloudTemplateLanguage },
+                language: { code: this.cloudTemplateLanguage || 'es' },
+                components: [
+                    {
+                        type: 'body',
+                        parameters: parameters.map((param) => ({ type: 'text', text: param })),
+                    },
+                ],
             },
         };
-        if (parameters.length > 0) {
-            body.template.components = [
-                {
-                    type: 'body',
-                    parameters: parameters.map(text => ({ type: 'text', text })),
-                },
-            ];
-        }
         const response = await fetch(`https://graph.facebook.com/v19.0/${this.cloudPhoneNumberId}/messages`, {
             method: 'POST',
             headers: {
@@ -735,7 +735,8 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
         };
     }
     normalizePhoneNumber(value) {
-        return String(value).replace('whatsapp:', '').replace(/\D/g, '');
+        // Usar import estándar
+        return (0, phone_1.normalizePhoneNumber)(value);
     }
 };
 exports.WhatsappService = WhatsappService;

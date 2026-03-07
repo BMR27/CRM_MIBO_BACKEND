@@ -1,3 +1,5 @@
+// Importar la función global de normalización
+import { normalizePhoneNumber } from '../../lib/phone';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -13,6 +15,10 @@ export class ContactsService {
   ) {}
 
   async create(createContactDto: CreateContactDto) {
+    // Normalizar el número antes de crear
+    if (createContactDto.phone_number) {
+      createContactDto.phone_number = normalizePhoneNumber(createContactDto.phone_number);
+    }
     const contact = this.contactRepository.create(createContactDto);
     return this.contactRepository.save(contact);
   }
@@ -28,17 +34,26 @@ export class ContactsService {
   }
 
   async findByPhoneNumber(phoneNumber: string) {
+    // Buscar siempre por el número normalizado
+    const normalized = normalizePhoneNumber(phoneNumber);
     return this.contactRepository.findOne({
-      where: { phone_number: phoneNumber },
+      where: { phone_number: normalized },
     });
   }
 
   async findOrCreateByPhone(phoneNumber: string) {
-    let contact = await this.findByPhoneNumber(phoneNumber);
+    // Normalizar el número antes de buscar o crear
+    const normalized = normalizePhoneNumber(phoneNumber);
+    let contact = await this.findByPhoneNumber(normalized);
     if (!contact) {
+      let name = normalized;
+      // Si el parámetro es un objeto y tiene campo 'cliente', usarlo como nombre
+      if (typeof phoneNumber === 'object' && (phoneNumber as any)?.cliente) {
+        name = (phoneNumber as any).cliente;
+      }
       contact = await this.create({
-        phone_number: phoneNumber,
-        name: phoneNumber, // Usar el tel�fono como nombre inicial
+        phone_number: normalized,
+        name,
       });
     }
     return contact;

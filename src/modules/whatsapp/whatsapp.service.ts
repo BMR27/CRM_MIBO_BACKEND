@@ -10,6 +10,7 @@ import { ContactsService } from '../contacts/contacts.service';
 import { ConversationsService } from '../conversations/conversations.service';
 import { MessagesService } from '../messages/messages.service';
 import { Readable } from 'stream';
+import { normalizePhoneNumber } from '../../lib/phone';
 
 @Injectable()
 export class WhatsappService {
@@ -107,7 +108,7 @@ export class WhatsappService {
 
             await this.processIncomingMessage(
               parsed.content,
-              `whatsapp:+${normalizedPhone}`,
+              normalizedPhone,
               messageId,
               {
                 message_type: parsed.message_type,
@@ -143,9 +144,9 @@ export class WhatsappService {
     },
   ): Promise<void> {
     try {
-      const contact = await this.contactsService.findOrCreateByPhone(senderPhoneNumber);
+      const normalizedPhone = this.normalizePhoneNumber(senderPhoneNumber);
+      const contact = await this.contactsService.findOrCreateByPhone(normalizedPhone);
       const conversations = await this.conversationsService.findByContact(contact.id);
-      
       let activeConversation = null;
       if (conversations && conversations.length > 0) {
         activeConversation = conversations[0];
@@ -194,25 +195,18 @@ export class WhatsappService {
     hint?: string;
   }> {
     try {
-      const cleanPhone = this.normalizePhoneNumber(phoneNumber);
-
-      // Forzar uso de Twilio SDK para texto plano
+      const normalizedPhone = this.normalizePhoneNumber(phoneNumber);
       if (this.twilioClient && this.twilioPhoneNumber) {
-        let formattedPhone = phoneNumber;
-        if (!formattedPhone.startsWith('whatsapp:+')) {
-          formattedPhone = `whatsapp:+${cleanPhone}`;
-        }
+        // Usar el valor normalizado directamente, sin duplicar el prefijo
         try {
           const response = await this.twilioClient.messages.create({
             from: `whatsapp:${this.twilioPhoneNumber}`,
-            to: formattedPhone,
+            to: normalizedPhone,
             body: message,
           });
-          this.logger.log(`Message sent to ${phoneNumber}, SID: ${response.sid}`);
-
-          // Guardar el mensaje enviado por el agente inmediatamente
-          // Buscar la conversación activa por el número de teléfono
-          const contact = await this.contactsService.findOrCreateByPhone(phoneNumber);
+          this.logger.log(`Message sent to ${normalizedPhone}, SID: ${response.sid}`);
+          // Save agent message to the correct conversation
+          const contact = await this.contactsService.findOrCreateByPhone(normalizedPhone);
           const conversations = await this.conversationsService.findByContact(contact.id);
           let activeConversation = null;
           if (conversations && conversations.length > 0) {
@@ -230,7 +224,6 @@ export class WhatsappService {
             is_from_whatsapp: false,
             whatsapp_message_id: response.sid,
           });
-
           return {
             success: true,
             whatsapp_message_id: response.sid,
@@ -522,9 +515,14 @@ export class WhatsappService {
   ): string[] {
     if (!variables) return [];
     if (Array.isArray(variables)) return variables.map(v => String(v));
-    return Object.keys(variables)
-      .sort()
-      .map(k => String(variables[k]));
+    // Si es objeto, devolver los valores en orden de las claves numéricas
+    if (typeof variables === 'object') {
+      // Si es un objeto tipo {"1": "Dalia", "2": "Kit Kat"}, devolver los valores en orden
+      return Object.keys(variables)
+        .sort((a, b) => Number(a) - Number(b))
+        .map(k => String(variables[k]));
+    }
+    return [];
   }
 
   private async sendCloudTextMessage(
@@ -602,18 +600,15 @@ export class WhatsappService {
       type: 'template',
       template: {
         name: templateName,
-        language: { code: this.cloudTemplateLanguage },
+        language: { code: this.cloudTemplateLanguage || 'es' },
+        components: [
+          {
+            type: 'body',
+            parameters: parameters.map((param) => ({ type: 'text', text: param })),
+          },
+        ],
       },
     };
-
-    if (parameters.length > 0) {
-      body.template.components = [
-        {
-          type: 'body',
-          parameters: parameters.map(text => ({ type: 'text', text })),
-        },
-      ];
-    }
 
     const response = await fetch(
       `https://graph.facebook.com/v19.0/${this.cloudPhoneNumberId}/messages`,
@@ -944,7 +939,8 @@ export class WhatsappService {
     };
   }
 
-  private normalizePhoneNumber(value: string): string {
-    return String(value).replace('whatsapp:', '').replace(/\D/g, '');
+  public normalizePhoneNumber(value: string): string {
+    // Usar import estándar
+    return normalizePhoneNumber(value);
   }
 }

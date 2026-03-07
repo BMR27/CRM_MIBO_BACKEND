@@ -13,6 +13,8 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ContactsService = void 0;
+// Importar la función global de normalización
+const phone_1 = require("../../lib/phone");
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
@@ -22,6 +24,10 @@ let ContactsService = class ContactsService {
         this.contactRepository = contactRepository;
     }
     async create(createContactDto) {
+        // Normalizar el número antes de crear
+        if (createContactDto.phone_number) {
+            createContactDto.phone_number = (0, phone_1.normalizePhoneNumber)(createContactDto.phone_number);
+        }
         const contact = this.contactRepository.create(createContactDto);
         return this.contactRepository.save(contact);
     }
@@ -34,16 +40,25 @@ let ContactsService = class ContactsService {
         });
     }
     async findByPhoneNumber(phoneNumber) {
+        // Buscar siempre por el número normalizado
+        const normalized = (0, phone_1.normalizePhoneNumber)(phoneNumber);
         return this.contactRepository.findOne({
-            where: { phone_number: phoneNumber },
+            where: { phone_number: normalized },
         });
     }
     async findOrCreateByPhone(phoneNumber) {
-        let contact = await this.findByPhoneNumber(phoneNumber);
+        // Normalizar el número antes de buscar o crear
+        const normalized = (0, phone_1.normalizePhoneNumber)(phoneNumber);
+        let contact = await this.findByPhoneNumber(normalized);
         if (!contact) {
+            let name = normalized;
+            // Si el parámetro es un objeto y tiene campo 'cliente', usarlo como nombre
+            if (typeof phoneNumber === 'object' && phoneNumber?.cliente) {
+                name = phoneNumber.cliente;
+            }
             contact = await this.create({
-                phone_number: phoneNumber,
-                name: phoneNumber, // Usar el tel�fono como nombre inicial
+                phone_number: normalized,
+                name,
             });
         }
         return contact;
