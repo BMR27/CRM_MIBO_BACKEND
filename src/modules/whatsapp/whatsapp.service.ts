@@ -173,8 +173,9 @@ export class WhatsappService {
       });
 
       await this.conversationsService.update(activeConversation.id, {
-        sender_id: contact?.id || null, // Asigna el id del contacto si existe
+        sender_id: contact?.id || null,
         priority: activeConversation.priority || 'medium',
+        last_message_at: new Date(),
       } as any);
 
       await this.contactsService.updateLastSeen(contact.id);
@@ -343,7 +344,7 @@ export class WhatsappService {
       },
     );
 
-    const infoText = await infoResponse.text();
+    const infoText = await infoResponse.text();   
     let infoData: any = null;
     try {
       infoData = infoText ? JSON.parse(infoText) : null;
