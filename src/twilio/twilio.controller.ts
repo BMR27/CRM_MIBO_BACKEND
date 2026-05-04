@@ -1,7 +1,8 @@
 
-import { Body, Controller, Post, Options } from '@nestjs/common';
+import { Body, Controller, Post, Options, Get, Param, Query, Res } from '@nestjs/common';
 import { TwilioService } from './twilio.service';
 import { MessagesService } from '../modules/messages/messages.service';
+import { Response } from 'express';
 
 
 @Controller('twilio')
@@ -61,8 +62,62 @@ export class TwilioController {
     return { success: true, twilio: twilioResult };
   }
 
+  @Post('send-wa-media')
+  async sendWAMedia(@Body() body: any) {
+    const to = String(body?.to || '').trim();
+    const from = String(body?.from || process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886').trim();
+    const mediaUrl = String(body?.mediaUrl || '').trim();
+    const textBody = typeof body?.body === 'string' ? body.body : undefined;
+
+    if (!to || !mediaUrl) {
+      throw { statusCode: 400, message: 'to and mediaUrl are required' };
+    }
+
+    const twilioResult = await this.twilioService.sendWhatsAppMedia({
+      to,
+      from,
+      mediaUrl,
+      body: textBody,
+    });
+
+    return { success: true, twilio: twilioResult };
+  }
+
   @Options('send-wa-template')
   optionsSendWaTemplate() {
     return {};
+  }
+
+  @Options('send-wa-media')
+  optionsSendWaMedia() {
+    return {};
+  }
+
+  @Get('media-by-message/:messageSid')
+  async getMediaByMessage(
+    @Param('messageSid') messageSid: string,
+    @Query('filename') filename: string | undefined,
+    @Res() res: Response,
+  ) {
+    try {
+      const result = await this.twilioService.downloadFirstMediaByMessageSid(messageSid);
+      const safeFilename = (filename || '').trim();
+
+      res.setHeader('Content-Type', result.contentType || 'application/octet-stream');
+      res.setHeader('Cache-Control', 'private, no-store');
+
+      if (safeFilename) {
+        res.setHeader('Content-Disposition', `inline; filename="${safeFilename}"`);
+      } else if (result.contentDisposition) {
+        res.setHeader('Content-Disposition', result.contentDisposition);
+      }
+
+      res.status(200).send(result.data);
+    } catch (error: any) {
+      res.status(404).json({
+        error: 'Media not found for message',
+        details: error?.message || 'Unknown error',
+      });
+    }
   }
 }

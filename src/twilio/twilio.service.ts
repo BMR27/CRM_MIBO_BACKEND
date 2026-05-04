@@ -102,4 +102,59 @@ export class TwilioService {
     });
     return response.data;
   }
+
+  async sendWhatsAppMedia({
+    to,
+    from,
+    mediaUrl,
+    body,
+  }: {
+    to: string;
+    from: string;
+    mediaUrl: string;
+    body?: string;
+  }) {
+    const payload = {
+      to: to.startsWith('whatsapp:') ? to : `whatsapp:${to}`,
+      from: from.startsWith('whatsapp:') ? from : `whatsapp:${from}`,
+      mediaUrl: [mediaUrl],
+      ...(body && body.trim() ? { body: body.trim() } : {}),
+    };
+
+    // eslint-disable-next-line no-console
+    console.log('Twilio sendWhatsAppMedia payload:', payload);
+    return this.client.messages.create(payload);
+  }
+
+  async downloadFirstMediaByMessageSid(messageSid: string) {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID!;
+    const authToken = process.env.TWILIO_AUTH_TOKEN!;
+
+    const mediaList = await this.client.messages(messageSid).media.list({ limit: 1 });
+    if (!mediaList || mediaList.length === 0) {
+      throw new Error('No media found for this message');
+    }
+
+    const media = mediaList[0] as any;
+    const mediaUri: string = String(media?.uri || '');
+    if (!mediaUri) {
+      throw new Error('Media URI not found');
+    }
+
+    // Twilio media URI ends with .json; removing it returns the raw media bytes.
+    const rawMediaUrl = `https://api.twilio.com${mediaUri.replace(/\.json$/i, '')}`;
+    const resp = await axios.get(rawMediaUrl, {
+      auth: { username: accountSid, password: authToken },
+      responseType: 'arraybuffer',
+    });
+
+    const contentType = String(resp.headers['content-type'] || media?.contentType || 'application/octet-stream');
+    const contentDisposition = String(resp.headers['content-disposition'] || '');
+
+    return {
+      data: Buffer.from(resp.data),
+      contentType,
+      contentDisposition,
+    };
+  }
 }
