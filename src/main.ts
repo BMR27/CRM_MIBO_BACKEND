@@ -36,7 +36,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3001;
   console.log('DATABASE_URL:', process.env.DATABASE_URL);
-  await app.listen(port, async () => {
+  await app.listen(port, '0.0.0.0', async () => {
     console.log(`Server running on http://localhost:${port}`);
     console.log(`Swagger docs available at http://localhost:${port}/api/docs`);
 

@@ -69,8 +69,48 @@ let TwilioController = class TwilioController {
         }
         return { success: true, twilio: twilioResult };
     }
+    async sendWAMedia(body) {
+        const to = String(body?.to || '').trim();
+        const from = String(body?.from || process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886').trim();
+        const mediaUrl = String(body?.mediaUrl || '').trim();
+        const textBody = typeof body?.body === 'string' ? body.body : undefined;
+        if (!to || !mediaUrl) {
+            throw { statusCode: 400, message: 'to and mediaUrl are required' };
+        }
+        const twilioResult = await this.twilioService.sendWhatsAppMedia({
+            to,
+            from,
+            mediaUrl,
+            body: textBody,
+        });
+        return { success: true, twilio: twilioResult };
+    }
     optionsSendWaTemplate() {
         return {};
+    }
+    optionsSendWaMedia() {
+        return {};
+    }
+    async getMediaByMessage(messageSid, filename, res) {
+        try {
+            const result = await this.twilioService.downloadFirstMediaByMessageSid(messageSid);
+            const safeFilename = (filename || '').trim();
+            res.setHeader('Content-Type', result.contentType || 'application/octet-stream');
+            res.setHeader('Cache-Control', 'private, no-store');
+            if (safeFilename) {
+                res.setHeader('Content-Disposition', `inline; filename="${safeFilename}"`);
+            }
+            else if (result.contentDisposition) {
+                res.setHeader('Content-Disposition', result.contentDisposition);
+            }
+            res.status(200).send(result.data);
+        }
+        catch (error) {
+            res.status(404).json({
+                error: 'Media not found for message',
+                details: error?.message || 'Unknown error',
+            });
+        }
     }
 };
 exports.TwilioController = TwilioController;
@@ -89,11 +129,33 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], TwilioController.prototype, "sendWATemplate", null);
 __decorate([
+    (0, common_1.Post)('send-wa-media'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], TwilioController.prototype, "sendWAMedia", null);
+__decorate([
     (0, common_1.Options)('send-wa-template'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], TwilioController.prototype, "optionsSendWaTemplate", null);
+__decorate([
+    (0, common_1.Options)('send-wa-media'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], TwilioController.prototype, "optionsSendWaMedia", null);
+__decorate([
+    (0, common_1.Get)('media-by-message/:messageSid'),
+    __param(0, (0, common_1.Param)('messageSid')),
+    __param(1, (0, common_1.Query)('filename')),
+    __param(2, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", Promise)
+], TwilioController.prototype, "getMediaByMessage", null);
 exports.TwilioController = TwilioController = __decorate([
     (0, common_1.Controller)('twilio'),
     __metadata("design:paramtypes", [twilio_service_1.TwilioService,

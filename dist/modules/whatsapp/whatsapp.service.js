@@ -59,7 +59,7 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
                 await this.handleCloudWebhook(body);
                 return;
             }
-            const messageBody = body.Body;
+            const messageBody = body.Body || '';
             const senderPhoneNumber = body.From;
             const messageId = body.MessageSid;
             const accountId = body.AccountSid;
@@ -67,11 +67,46 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
                 this.logger.warn('Invalid account ID in webhook');
                 return;
             }
-            if (!messageBody || !senderPhoneNumber || !messageId) {
+            if (!senderPhoneNumber || !messageId) {
                 this.logger.warn('Missing required fields in webhook');
                 return;
             }
-            await this.processIncomingMessage(messageBody, senderPhoneNumber, messageId);
+            // Handle Twilio media attachments (NumMedia > 0)
+            const numMedia = parseInt(body.NumMedia || '0', 10);
+            let mediaExtra = undefined;
+            if (numMedia > 0) {
+                const mediaUrl = body.MediaUrl0;
+                const mediaMimeType = body.MediaContentType0 || '';
+                // Derive message_type from mime type
+                let messageType = 'document';
+                if (mediaMimeType.startsWith('image/'))
+                    messageType = 'image';
+                else if (mediaMimeType.startsWith('video/'))
+                    messageType = 'video';
+                else if (mediaMimeType.startsWith('audio/'))
+                    messageType = 'audio';
+                // Extract a filename from the URL (last path segment) if available
+                let filename = '';
+                if (mediaUrl) {
+                    try {
+                        filename = new URL(mediaUrl).pathname.split('/').pop() || '';
+                    }
+                    catch { /* ignore */ }
+                }
+                mediaExtra = {
+                    message_type: messageType,
+                    media_url: mediaUrl,
+                    media_mime_type: mediaMimeType,
+                    media_filename: filename,
+                    media_caption: messageBody || undefined,
+                    metadata: {
+                        media_url: mediaUrl,
+                        mime_type: mediaMimeType,
+                        filename,
+                    },
+                };
+            }
+            await this.processIncomingMessage(numMedia > 0 ? (messageBody || '') : messageBody, senderPhoneNumber, messageId, mediaExtra);
         }
         catch (error) {
             this.logger.error('Error processing webhook:', error);
@@ -146,8 +181,9 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
                 metadata: extra?.metadata,
             });
             await this.conversationsService.update(activeConversation.id, {
-                sender_id: contact?.id || null, // Asigna el id del contacto si existe
+                sender_id: contact?.id || null,
                 priority: activeConversation.priority || 'medium',
+                last_message_at: new Date(),
             });
             await this.contactsService.updateLastSeen(contact.id);
             this.logger.log(`Processed message ${messageId} from ${senderPhoneNumber}`);

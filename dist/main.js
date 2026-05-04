@@ -13,6 +13,7 @@ async function bootstrap() {
     // CORS seguro: solo permite localhost y el dominio de frontend de producción
     app.enableCors({
         origin: [
+            'http://localhost:3000',
             'http://localhost:3002',
             'https://crmmibofrontend-production.up.railway.app',
         ],
@@ -32,7 +33,7 @@ async function bootstrap() {
     swagger_1.SwaggerModule.setup('api/docs', app, document);
     const port = process.env.PORT || 3001;
     console.log('DATABASE_URL:', process.env.DATABASE_URL);
-    await app.listen(port, async () => {
+    await app.listen(port, '0.0.0.0', async () => {
         console.log(`Server running on http://localhost:${port}`);
         console.log(`Swagger docs available at http://localhost:${port}/api/docs`);
         // Seed default roles if not exist

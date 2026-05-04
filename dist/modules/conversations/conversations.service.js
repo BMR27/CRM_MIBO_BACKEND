@@ -34,6 +34,7 @@ let ConversationsService = class ConversationsService {
     async findAll() {
         const conversations = await this.conversationRepository.find({
             relations: ['contact', 'assigned_agent', 'messages'],
+            order: { last_message_at: 'DESC' },
         });
         // Agregar campo last_message y unread_count
         return conversations.map(conv => {
@@ -87,7 +88,7 @@ let ConversationsService = class ConversationsService {
                 { assigned_agent_id: null },
             ],
             relations: ['contact', 'assigned_agent', 'messages'],
-            order: { updated_at: 'DESC' },
+            order: { last_message_at: 'DESC' },
         });
     }
     async assignAgent(conversationId, agentId) {

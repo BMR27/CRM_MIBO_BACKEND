@@ -20,5 +20,16 @@ export declare class TwilioService {
         contentSid: string;
         variables?: string[];
     }): Promise<any>;
+    sendWhatsAppMedia({ to, from, mediaUrl, body, }: {
+        to: string;
+        from: string;
+        mediaUrl: string;
+        body?: string;
+    }): Promise<import("twilio/lib/rest/api/v2010/account/message").MessageInstance>;
+    downloadFirstMediaByMessageSid(messageSid: string): Promise<{
+        data: Buffer<any>;
+        contentType: string;
+        contentDisposition: string;
+    }>;
 }
 //# sourceMappingURL=twilio.service.d.ts.map
