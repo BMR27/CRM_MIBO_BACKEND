@@ -51,7 +51,7 @@ async function bootstrap() {
             'No debe publicarse a clientes finales sin control de acceso.',
         ].join('\n'))
             .setVersion('1.0.0')
-            .addServer('/api', 'Prefijo global del API')
+            .addServer('/', 'Servidor actual')
             .addBearerAuth({
             type: 'http',
             scheme: 'bearer',

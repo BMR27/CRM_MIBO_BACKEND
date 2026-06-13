@@ -59,7 +59,7 @@ async function bootstrap() {
         ].join('\n'),
       )
       .setVersion('1.0.0')
-      .addServer('/api', 'Prefijo global del API')
+      .addServer('/', 'Servidor actual')
       .addBearerAuth(
         {
           type: 'http',
