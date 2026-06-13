@@ -14,6 +14,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CallsController = void 0;
 const common_1 = require("@nestjs/common");
+const swagger_1 = require("@nestjs/swagger");
 let CallsController = class CallsController {
     async getCalls(conversationId) {
         // Aquí deberías consultar la base de datos por las llamadas asociadas
@@ -24,12 +25,15 @@ let CallsController = class CallsController {
 exports.CallsController = CallsController;
 __decorate([
     (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Listar llamadas', description: 'Devuelve llamadas asociadas a una conversación cuando se envía conversation_id.' }),
+    (0, swagger_1.ApiQuery)({ name: 'conversation_id', required: false, description: 'ID de la conversación' }),
     __param(0, (0, common_1.Query)('conversation_id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], CallsController.prototype, "getCalls", null);
 exports.CallsController = CallsController = __decorate([
+    (0, swagger_1.ApiTags)('Calls - Llamadas'),
     (0, common_1.Controller)('calls')
 ], CallsController);
 //# sourceMappingURL=calls.controller.js.map

@@ -11,26 +11,32 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreateMacroDto = void 0;
 const class_validator_1 = require("class-validator");
+const swagger_1 = require("@nestjs/swagger");
 class CreateMacroDto {
 }
 exports.CreateMacroDto = CreateMacroDto;
 __decorate([
+    (0, swagger_1.ApiProperty)({ example: 'Saludo inicial' }),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateMacroDto.prototype, "title", void 0);
 __decorate([
+    (0, swagger_1.ApiProperty)({ example: 'Hola, soy de Logimarket. ¿En qué puedo ayudarte?' }),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateMacroDto.prototype, "content", void 0);
 __decorate([
+    (0, swagger_1.ApiProperty)({ example: '/saludo' }),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateMacroDto.prototype, "shortcut", void 0);
 __decorate([
+    (0, swagger_1.ApiProperty)({ example: 'uuid-usuario' }),
     (0, class_validator_1.IsUUID)(),
     __metadata("design:type", String)
 ], CreateMacroDto.prototype, "created_by_id", void 0);
 __decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: true }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)

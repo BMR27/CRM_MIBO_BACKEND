@@ -21,7 +21,17 @@ import { MessagesService } from '../messages/messages.service';
 import { CreateMessageDto } from '../messages/dto/create-message.dto';
 import { ContactsService } from '../contacts/contacts.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
+@ApiTags('Conversations - Conversaciones CRM')
+@ApiBearerAuth()
 @Controller('conversations')
 export class ConversationsController {
   constructor(
@@ -36,18 +46,26 @@ export class ConversationsController {
 
   @Get(':id/messages')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Listar mensajes de una conversación' })
+  @ApiParam({ name: 'id', description: 'ID de la conversación' })
+  @ApiResponse({ status: 200, description: 'Mensajes de la conversación' })
   async getMessages(@Param('id') id: string) {
     return this.conversationsService.getMessagesByConversation(id);
   }
 
   @Post()
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Crear conversación' })
+  @ApiBody({ type: CreateConversationDto })
+  @ApiResponse({ status: 201, description: 'Conversación creada' })
   create(@Body(ValidationPipe) createConversationDto: CreateConversationDto) {
     return this.conversationsService.create(createConversationDto).then(conversation => ({ conversation }));
   }
 
   @Get()
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Listar conversaciones' })
+  @ApiResponse({ status: 200, description: 'Lista de conversaciones filtrada por rol del usuario' })
   async findAll(@Req() request: any) {
     const user = request.user;
     const userRole = user?.role;
@@ -69,18 +87,26 @@ export class ConversationsController {
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Obtener conversación por ID' })
+  @ApiParam({ name: 'id', description: 'ID de la conversación' })
+  @ApiResponse({ status: 200, description: 'Conversación encontrada' })
   findOne(@Param('id') id: string) {
     return this.conversationsService.findOne(id);
   }
 
   @Get('contact/:contactId')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Listar conversaciones por contacto' })
+  @ApiParam({ name: 'contactId', description: 'ID del contacto' })
   findByContact(@Param('contactId') contactId: string) {
     return this.conversationsService.findByContact(contactId);
   }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Actualizar conversación' })
+  @ApiParam({ name: 'id', description: 'ID de la conversación' })
+  @ApiBody({ type: UpdateConversationDto })
   update(
     @Param('id') id: string,
     @Body(ValidationPipe) updateConversationDto: UpdateConversationDto,
@@ -90,6 +116,15 @@ export class ConversationsController {
 
   @Post(':id/assign')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Asignar agente a conversación' })
+  @ApiParam({ name: 'id', description: 'ID de la conversación' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { agentId: { type: 'string', example: 'uuid-del-agente' } },
+      required: ['agentId'],
+    },
+  })
   async assignAgent(
     @Param('id') id: string,
     @Body() body: { agentId: string },
@@ -100,6 +135,15 @@ export class ConversationsController {
 
   @Put(':id/priority')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Actualizar prioridad de conversación' })
+  @ApiParam({ name: 'id', description: 'ID de la conversación' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { priority: { type: 'string', enum: ['low', 'medium', 'high'], example: 'medium' } },
+      required: ['priority'],
+    },
+  })
   async updatePriority(
     @Param('id') id: string,
     @Body() body: { priority: string },
@@ -114,6 +158,15 @@ export class ConversationsController {
 
   @Put(':id/status')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Actualizar estado de conversación' })
+  @ApiParam({ name: 'id', description: 'ID de la conversación' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { status: { type: 'string', enum: ['active', 'resolved'], example: 'active' } },
+      required: ['status'],
+    },
+  })
   async updateStatus(
     @Param('id') id: string,
     @Body() body: { status: string },
@@ -128,12 +181,18 @@ export class ConversationsController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Eliminar conversación' })
+  @ApiParam({ name: 'id', description: 'ID de la conversación' })
   remove(@Param('id') id: string) {
     return this.conversationsService.remove(id);
   }
 
   @Post(':id/messages')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Crear y enviar mensaje dentro de una conversación' })
+  @ApiParam({ name: 'id', description: 'ID de la conversación' })
+  @ApiBody({ type: CreateMessageDto })
+  @ApiResponse({ status: 201, description: 'Mensaje creado y enviado cuando aplica' })
   async createMessageForConversation(
     @Param('id') conversationId: string,
     @Body(ValidationPipe) body: Partial<CreateMessageDto>,
@@ -200,5 +259,4 @@ export class ConversationsController {
     }
   }
 }
-
 

@@ -16,6 +16,7 @@ exports.ConversationTagsController = void 0;
 const common_1 = require("@nestjs/common");
 const conversation_tags_service_1 = require("./conversation-tags.service");
 const create_conversation_tag_dto_1 = require("./dto/create-conversation-tag.dto");
+const swagger_1 = require("@nestjs/swagger");
 let ConversationTagsController = class ConversationTagsController {
     constructor(conversationTagsService) {
         this.conversationTagsService = conversationTagsService;
@@ -39,6 +40,8 @@ let ConversationTagsController = class ConversationTagsController {
 exports.ConversationTagsController = ConversationTagsController;
 __decorate([
     (0, common_1.Post)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Crear etiqueta de conversación' }),
+    (0, swagger_1.ApiBody)({ type: create_conversation_tag_dto_1.CreateConversationTagDto }),
     __param(0, (0, common_1.Body)(common_1.ValidationPipe)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_conversation_tag_dto_1.CreateConversationTagDto]),
@@ -46,12 +49,15 @@ __decorate([
 ], ConversationTagsController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Listar etiquetas' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], ConversationTagsController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)(':id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Obtener etiqueta por ID' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID de la etiqueta' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -59,6 +65,8 @@ __decorate([
 ], ConversationTagsController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Get)('conversation/:conversationId'),
+    (0, swagger_1.ApiOperation)({ summary: 'Listar etiquetas por conversación' }),
+    (0, swagger_1.ApiParam)({ name: 'conversationId', description: 'ID de la conversación' }),
     __param(0, (0, common_1.Param)('conversationId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -66,12 +74,15 @@ __decorate([
 ], ConversationTagsController.prototype, "findByConversation", null);
 __decorate([
     (0, common_1.Delete)(':id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Eliminar etiqueta' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID de la etiqueta' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], ConversationTagsController.prototype, "remove", null);
 exports.ConversationTagsController = ConversationTagsController = __decorate([
+    (0, swagger_1.ApiTags)('Conversation Tags - Etiquetas'),
     (0, common_1.Controller)('api/conversation-tags'),
     __metadata("design:paramtypes", [conversation_tags_service_1.ConversationTagsService])
 ], ConversationTagsController);

@@ -76,7 +76,6 @@ let UsersService = class UsersService {
                 id: true,
                 name: true,
                 email: true,
-                role: true,
                 created_at: true,
             },
         });
@@ -109,7 +108,6 @@ let UsersService = class UsersService {
                 id: true,
                 name: true,
                 email: true,
-                role: true,
                 created_at: true,
             },
         });

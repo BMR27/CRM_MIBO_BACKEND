@@ -11,18 +11,22 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreateContactDto = void 0;
 const class_validator_1 = require("class-validator");
+const swagger_1 = require("@nestjs/swagger");
 class CreateContactDto {
 }
 exports.CreateContactDto = CreateContactDto;
 __decorate([
+    (0, swagger_1.ApiProperty)({ example: '+525512345678', description: 'Teléfono en formato internacional E.164' }),
     (0, class_validator_1.Matches)(/^\+\d{10,15}$/, { message: 'phone_number must be a valid international phone number' }),
     __metadata("design:type", String)
 ], CreateContactDto.prototype, "phone_number", void 0);
 __decorate([
+    (0, swagger_1.ApiProperty)({ example: 'Juan Pérez' }),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateContactDto.prototype, "name", void 0);
 __decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'https://example.com/avatar.png' }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsUrl)(),
     __metadata("design:type", String)

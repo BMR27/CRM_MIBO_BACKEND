@@ -18,6 +18,7 @@ const messages_service_1 = require("./messages.service");
 const create_message_dto_1 = require("./dto/create-message.dto");
 const update_message_dto_1 = require("./dto/update-message.dto");
 const messages_markRead_1 = require("./messages.markRead");
+const swagger_1 = require("@nestjs/swagger");
 let MessagesController = class MessagesController {
     constructor(messagesService, messagesMarkReadService) {
         this.messagesService = messagesService;
@@ -48,6 +49,9 @@ let MessagesController = class MessagesController {
 exports.MessagesController = MessagesController;
 __decorate([
     (0, common_1.Post)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Crear mensaje' }),
+    (0, swagger_1.ApiBody)({ type: create_message_dto_1.CreateMessageDto }),
+    (0, swagger_1.ApiResponse)({ status: 201, description: 'Mensaje creado' }),
     __param(0, (0, common_1.Body)(common_1.ValidationPipe)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_message_dto_1.CreateMessageDto]),
@@ -55,12 +59,15 @@ __decorate([
 ], MessagesController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Listar mensajes' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], MessagesController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)(':id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Obtener mensaje por ID' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID del mensaje' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -68,6 +75,8 @@ __decorate([
 ], MessagesController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Get)('conversation/:conversationId'),
+    (0, swagger_1.ApiOperation)({ summary: 'Listar mensajes por conversación' }),
+    (0, swagger_1.ApiParam)({ name: 'conversationId', description: 'ID de la conversación' }),
     __param(0, (0, common_1.Param)('conversationId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -75,6 +84,9 @@ __decorate([
 ], MessagesController.prototype, "findByConversation", null);
 __decorate([
     (0, common_1.Patch)(':id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Actualizar mensaje' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID del mensaje' }),
+    (0, swagger_1.ApiBody)({ type: update_message_dto_1.UpdateMessageDto }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)(common_1.ValidationPipe)),
     __metadata("design:type", Function),
@@ -83,6 +95,8 @@ __decorate([
 ], MessagesController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(':id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Eliminar mensaje' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID del mensaje' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -90,12 +104,15 @@ __decorate([
 ], MessagesController.prototype, "remove", null);
 __decorate([
     (0, common_1.Post)('mark-read/:conversationId'),
+    (0, swagger_1.ApiOperation)({ summary: 'Marcar mensajes de una conversación como leídos' }),
+    (0, swagger_1.ApiParam)({ name: 'conversationId', description: 'ID de la conversación' }),
     __param(0, (0, common_1.Param)('conversationId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], MessagesController.prototype, "markConversationMessagesAsRead", null);
 exports.MessagesController = MessagesController = __decorate([
+    (0, swagger_1.ApiTags)('Messages - Mensajes'),
     (0, common_1.Controller)('messages'),
     __metadata("design:paramtypes", [messages_service_1.MessagesService,
         messages_markRead_1.MessagesMarkReadService])

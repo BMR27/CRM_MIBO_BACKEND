@@ -21,8 +21,10 @@ const create_conversation_dto_1 = require("./dto/create-conversation.dto");
 const update_conversation_dto_1 = require("./dto/update-conversation.dto");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const messages_service_1 = require("../messages/messages.service");
+const create_message_dto_1 = require("../messages/dto/create-message.dto");
 const contacts_service_1 = require("../contacts/contacts.service");
 const whatsapp_service_1 = require("../whatsapp/whatsapp.service");
+const swagger_1 = require("@nestjs/swagger");
 let ConversationsController = ConversationsController_1 = class ConversationsController {
     constructor(conversationsService, messagesService, contactsService, whatsappService) {
         this.conversationsService = conversationsService;
@@ -159,6 +161,9 @@ exports.ConversationsController = ConversationsController;
 __decorate([
     (0, common_2.Get)(':id/messages'),
     (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Listar mensajes de una conversación' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID de la conversación' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Mensajes de la conversación' }),
     __param(0, (0, common_2.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -167,6 +172,9 @@ __decorate([
 __decorate([
     (0, common_2.Post)(),
     (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Crear conversación' }),
+    (0, swagger_1.ApiBody)({ type: create_conversation_dto_1.CreateConversationDto }),
+    (0, swagger_1.ApiResponse)({ status: 201, description: 'Conversación creada' }),
     __param(0, (0, common_2.Body)(common_2.ValidationPipe)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_conversation_dto_1.CreateConversationDto]),
@@ -175,6 +183,8 @@ __decorate([
 __decorate([
     (0, common_2.Get)(),
     (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Listar conversaciones' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Lista de conversaciones filtrada por rol del usuario' }),
     __param(0, (0, common_2.Req)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
@@ -183,6 +193,9 @@ __decorate([
 __decorate([
     (0, common_2.Get)(':id'),
     (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Obtener conversación por ID' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID de la conversación' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Conversación encontrada' }),
     __param(0, (0, common_2.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -191,6 +204,8 @@ __decorate([
 __decorate([
     (0, common_2.Get)('contact/:contactId'),
     (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Listar conversaciones por contacto' }),
+    (0, swagger_1.ApiParam)({ name: 'contactId', description: 'ID del contacto' }),
     __param(0, (0, common_2.Param)('contactId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -199,6 +214,9 @@ __decorate([
 __decorate([
     (0, common_2.Patch)(':id'),
     (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Actualizar conversación' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID de la conversación' }),
+    (0, swagger_1.ApiBody)({ type: update_conversation_dto_1.UpdateConversationDto }),
     __param(0, (0, common_2.Param)('id')),
     __param(1, (0, common_2.Body)(common_2.ValidationPipe)),
     __metadata("design:type", Function),
@@ -208,6 +226,15 @@ __decorate([
 __decorate([
     (0, common_2.Post)(':id/assign'),
     (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Asignar agente a conversación' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID de la conversación' }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: 'object',
+            properties: { agentId: { type: 'string', example: 'uuid-del-agente' } },
+            required: ['agentId'],
+        },
+    }),
     __param(0, (0, common_2.Param)('id')),
     __param(1, (0, common_2.Body)()),
     __metadata("design:type", Function),
@@ -217,6 +244,15 @@ __decorate([
 __decorate([
     (0, common_2.Put)(':id/priority'),
     (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Actualizar prioridad de conversación' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID de la conversación' }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: 'object',
+            properties: { priority: { type: 'string', enum: ['low', 'medium', 'high'], example: 'medium' } },
+            required: ['priority'],
+        },
+    }),
     __param(0, (0, common_2.Param)('id')),
     __param(1, (0, common_2.Body)()),
     __metadata("design:type", Function),
@@ -226,6 +262,15 @@ __decorate([
 __decorate([
     (0, common_2.Put)(':id/status'),
     (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Actualizar estado de conversación' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID de la conversación' }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: 'object',
+            properties: { status: { type: 'string', enum: ['active', 'resolved'], example: 'active' } },
+            required: ['status'],
+        },
+    }),
     __param(0, (0, common_2.Param)('id')),
     __param(1, (0, common_2.Body)()),
     __metadata("design:type", Function),
@@ -235,6 +280,8 @@ __decorate([
 __decorate([
     (0, common_2.Delete)(':id'),
     (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Eliminar conversación' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID de la conversación' }),
     __param(0, (0, common_2.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -243,6 +290,10 @@ __decorate([
 __decorate([
     (0, common_2.Post)(':id/messages'),
     (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Crear y enviar mensaje dentro de una conversación' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID de la conversación' }),
+    (0, swagger_1.ApiBody)({ type: create_message_dto_1.CreateMessageDto }),
+    (0, swagger_1.ApiResponse)({ status: 201, description: 'Mensaje creado y enviado cuando aplica' }),
     __param(0, (0, common_2.Param)('id')),
     __param(1, (0, common_2.Body)(common_2.ValidationPipe)),
     __param(2, (0, common_2.Req)()),
@@ -251,6 +302,8 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], ConversationsController.prototype, "createMessageForConversation", null);
 exports.ConversationsController = ConversationsController = ConversationsController_1 = __decorate([
+    (0, swagger_1.ApiTags)('Conversations - Conversaciones CRM'),
+    (0, swagger_1.ApiBearerAuth)(),
     (0, common_2.Controller)('conversations'),
     __metadata("design:paramtypes", [conversations_service_1.ConversationsService,
         messages_service_1.MessagesService,

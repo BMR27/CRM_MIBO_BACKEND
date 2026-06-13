@@ -17,6 +17,7 @@ const common_1 = require("@nestjs/common");
 const orders_service_1 = require("./orders.service");
 const create_order_dto_1 = require("./dto/create-order.dto");
 const update_order_dto_1 = require("./dto/update-order.dto");
+const swagger_1 = require("@nestjs/swagger");
 let OrdersController = class OrdersController {
     constructor(ordersService) {
         this.ordersService = ordersService;
@@ -43,6 +44,9 @@ let OrdersController = class OrdersController {
 exports.OrdersController = OrdersController;
 __decorate([
     (0, common_1.Post)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Crear orden' }),
+    (0, swagger_1.ApiBody)({ type: create_order_dto_1.CreateOrderDto }),
+    (0, swagger_1.ApiResponse)({ status: 201, description: 'Orden creada' }),
     __param(0, (0, common_1.Body)(common_1.ValidationPipe)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_order_dto_1.CreateOrderDto]),
@@ -50,12 +54,15 @@ __decorate([
 ], OrdersController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Listar órdenes' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], OrdersController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)(':id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Obtener orden por ID' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID de la orden' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -63,6 +70,8 @@ __decorate([
 ], OrdersController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Get)('contact/:contactId'),
+    (0, swagger_1.ApiOperation)({ summary: 'Listar órdenes por contacto' }),
+    (0, swagger_1.ApiParam)({ name: 'contactId', description: 'ID del contacto' }),
     __param(0, (0, common_1.Param)('contactId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -70,6 +79,9 @@ __decorate([
 ], OrdersController.prototype, "findByContact", null);
 __decorate([
     (0, common_1.Patch)(':id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Actualizar orden' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID de la orden' }),
+    (0, swagger_1.ApiBody)({ type: update_order_dto_1.UpdateOrderDto }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)(common_1.ValidationPipe)),
     __metadata("design:type", Function),
@@ -78,12 +90,15 @@ __decorate([
 ], OrdersController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(':id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Eliminar orden' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID de la orden' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], OrdersController.prototype, "remove", null);
 exports.OrdersController = OrdersController = __decorate([
+    (0, swagger_1.ApiTags)('Orders - Órdenes'),
     (0, common_1.Controller)('api/orders'),
     __metadata("design:paramtypes", [orders_service_1.OrdersService])
 ], OrdersController);

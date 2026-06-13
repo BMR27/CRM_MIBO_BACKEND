@@ -152,7 +152,7 @@ export class MessagesBulkController {
         }
         // 3. Enviar mensaje por WhatsApp
         const cliente = String(row.CLIENTE || row.nombre || 'Usuario').trim() || 'Usuario';
-        const asesor = String(row.ASESOR || 'Juan Pérez').trim() || 'Juan Pérez';
+        const asesor = String(row.ASESOR || req?.user?.name || req?.user?.email || 'Agente').trim() || 'Agente';
         const producto = String(row.PRODUCTOS_A || row.PRODUCTS_A || row.producto || '').trim();
         const variablesToSend = [cliente, asesor, producto];
         // Log explícito para depuración

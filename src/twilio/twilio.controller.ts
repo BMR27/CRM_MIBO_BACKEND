@@ -3,8 +3,10 @@ import { Body, Controller, Post, Options, Get, Param, Query, Res } from '@nestjs
 import { TwilioService } from './twilio.service';
 import { MessagesService } from '../modules/messages/messages.service';
 import { Response } from 'express';
+import { ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 
+@ApiTags('Twilio - WhatsApp Templates y Media')
 @Controller('twilio')
 export class TwilioController {
   constructor(
@@ -17,6 +19,15 @@ export class TwilioController {
    * POST /api/twilio/wa-templates { serviceSid }
    */
   @Post('wa-templates')
+  @ApiOperation({ summary: 'Obtener plantillas aprobadas de WhatsApp en Twilio' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        serviceSid: { type: 'string', example: 'ISxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' },
+      },
+    },
+  })
   async getApprovedWATemplates(@Body() body: any) {
     try {
       // Si se recibe serviceSid, pásalo al servicio
@@ -29,6 +40,22 @@ export class TwilioController {
 
 
   @Post('send-wa-template')
+  @ApiOperation({ summary: 'Enviar plantilla WhatsApp por Twilio' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        to: { type: 'string', example: 'whatsapp:+525512345678' },
+        from: { type: 'string', example: 'whatsapp:+14155238886' },
+        contentSid: { type: 'string', example: 'HXdf73cf1db9d8dc586d94d576fa2e140c' },
+        variables: { type: 'array', items: { type: 'string' }, example: ['Juan Pérez', 'Producto'] },
+        conversation_id: { type: 'string', example: 'uuid-conversacion' },
+        sender_id: { type: 'string', example: 'uuid-agente' },
+      },
+      required: ['to', 'contentSid'],
+    },
+  })
+  @ApiResponse({ status: 201, description: 'Plantilla enviada' })
   async sendWATemplate(@Body() body: any) {
     // body: { to, from, contentSid, variables, conversation_id, sender_id }
     let twilioResult;
@@ -63,6 +90,19 @@ export class TwilioController {
   }
 
   @Post('send-wa-media')
+  @ApiOperation({ summary: 'Enviar media por WhatsApp vía Twilio' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        to: { type: 'string', example: 'whatsapp:+525512345678' },
+        from: { type: 'string', example: 'whatsapp:+14155238886' },
+        mediaUrl: { type: 'string', example: 'https://example.com/documento.pdf' },
+        body: { type: 'string', example: 'Documento adjunto' },
+      },
+      required: ['to', 'mediaUrl'],
+    },
+  })
   async sendWAMedia(@Body() body: any) {
     const to = String(body?.to || '').trim();
     const from = String(body?.from || process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886').trim();
@@ -84,16 +124,23 @@ export class TwilioController {
   }
 
   @Options('send-wa-template')
+  @ApiOperation({ summary: 'Preflight CORS para envío de plantilla' })
   optionsSendWaTemplate() {
     return {};
   }
 
   @Options('send-wa-media')
+  @ApiOperation({ summary: 'Preflight CORS para envío de media' })
   optionsSendWaMedia() {
     return {};
   }
 
   @Get('media-by-message/:messageSid')
+  @ApiOperation({ summary: 'Descargar primer archivo media asociado a un mensaje Twilio' })
+  @ApiParam({ name: 'messageSid', description: 'SID del mensaje Twilio', example: 'SMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' })
+  @ApiQuery({ name: 'filename', required: false, description: 'Nombre sugerido para responder Content-Disposition' })
+  @ApiResponse({ status: 200, description: 'Archivo media binario' })
+  @ApiResponse({ status: 404, description: 'Media no encontrada' })
   async getMediaByMessage(
     @Param('messageSid') messageSid: string,
     @Query('filename') filename: string | undefined,

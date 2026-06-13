@@ -18,6 +18,8 @@ const twilio_1 = require("twilio");
 const axios_1 = __importDefault(require("axios"));
 let TwilioService = class TwilioService {
     constructor() {
+        this.allowedWATemplateName = 'customer_service_intro_v1';
+        this.allowedWATemplateSid = 'HXf9420e6e4ff17a94fe3dfaceb7aa657b';
         this.client = new twilio_1.Twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
     }
     /**
@@ -35,7 +37,12 @@ let TwilioService = class TwilioService {
             const response = await axios_1.default.get(url, {
                 auth: { username: accountSid, password: authToken }
             });
-            return response.data.templates || [];
+            const templates = response.data.templates || [];
+            return templates.filter((template) => {
+                const name = String(template?.friendly_name || template?.name || '').trim();
+                const sid = String(template?.sid || '').trim();
+                return name === this.allowedWATemplateName || sid === this.allowedWATemplateSid;
+            });
         }
         catch (err) {
             console.error('Twilio API error:', err?.response?.data || err?.message || err);

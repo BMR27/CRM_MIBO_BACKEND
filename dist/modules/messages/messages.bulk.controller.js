@@ -53,6 +53,8 @@ function getNombreSinNumero(nombre) {
     // Elimina números al inicio del nombre
     return nombre.replace(/^\d+\s*/, '').trim();
 }
+const CUSTOMER_SERVICE_TEMPLATE_SID = 'HXf9420e6e4ff17a94fe3dfaceb7aa657b';
+const CUSTOMER_SERVICE_TEMPLATE_BODY = '¡Hola, {{1}}! Mi nombre es {{2}} y lo contacto del departamento de atención al cliente del producto {{3}}. ¡Estoy a disposición para asistir!';
 const common_1 = require("@nestjs/common");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const platform_express_1 = require("@nestjs/platform-express");
@@ -61,6 +63,7 @@ const twilio_service_1 = require("../../twilio/twilio.service");
 const contacts_service_1 = require("../contacts/contacts.service");
 const conversations_service_1 = require("../conversations/conversations.service");
 const messages_service_1 = require("./messages.service");
+const swagger_1 = require("@nestjs/swagger");
 let MessagesBulkController = class MessagesBulkController {
     constructor(twilioService, contactsService, conversationsService, messagesService) {
         this.twilioService = twilioService;
@@ -92,19 +95,25 @@ let MessagesBulkController = class MessagesBulkController {
             console.log('No contacts provided');
             return { error: 'No contacts provided' };
         }
-        // Usar contentSid o templateSid recibido en el body si existe, si no usar el default bienvenida_logi
-        const contentSid = body.contentSid || body.templateSid || 'HX99ead19f74793c6b5f0e1777523f1815';
+        // En producción solo se permite la plantilla autorizada para campañas masivas.
+        const contentSid = CUSTOMER_SERVICE_TEMPLATE_SID;
+        const campaignId = String(body.campaignId || `bulk_${Date.now()}`);
+        const campaignName = String(body.campaignName || 'Campaña').trim() || 'Campaña';
+        const campaignCode = String(body.campaignCode || campaignId).trim() || campaignId;
         const from = process.env.TWILIO_WHATSAPP_FROM;
         const results = [];
         for (const row of data) {
             try {
-                const to = String(row.telefono);
+                const to = String(row.telefono || row.PHONE_A || row.phone || row.telefono_cliente || '').trim();
+                if (!to) {
+                    throw new Error('Contacto sin telefono/PHONE_A');
+                }
                 // 1. Buscar o crear contacto
                 let contact = await this.contactsService.findByPhoneNumber(to);
                 if (!contact) {
                     contact = await this.contactsService.create({
                         phone_number: to,
-                        name: row.nombre || to,
+                        name: row.CLIENTE || row.nombre || to,
                     });
                 }
                 // 2. Buscar o crear conversación
@@ -120,26 +129,10 @@ let MessagesBulkController = class MessagesBulkController {
                     conversation = await this.conversationsService.create({ contact_id: contact.id, assigned_agent_id });
                 }
                 // 3. Enviar mensaje por WhatsApp
-                let variablesToSend = [row.nombre || 'Usuario'];
-                // Si la plantilla requiere producto, agregarlo y forzar ambos parámetros
-                if (contentSid === 'HXdf73cf1db9d8dc586d94d576fa2e140c') {
-                    const producto = row.PRODUCTOS_A || row.PRODUCTS_A || row.producto || '';
-                    variablesToSend = [row.nombre || 'Usuario', producto];
-                }
-                else if (contentSid === 'HX9efa55d55fa323d5efa09d82d0a1c484') {
-                    // lm_buen_dia_en_entrega: nombre, orden, producto (todos como string)
-                    const producto = String(row.PRODUCTOS_A || row.PRODUCTS_A || row.producto || '');
-                    const orden = String(row.ORDEN || '');
-                    const nombre = String(row.nombre || 'Usuario');
-                    variablesToSend = [nombre, orden, producto];
-                }
-                else if ([
-                    'HX63433782a538101c777138bca250cc54', // lm_buen_dia_empaque
-                    'HX43be0016968ad04dbe7a7a2408a5d24b' // lm_buen_dia_proximo_entregar_confirma
-                ].includes(contentSid)) {
-                    const producto = row.PRODUCTOS_A || row.PRODUCTS_A || row.producto || '';
-                    variablesToSend.push(producto);
-                }
+                const cliente = String(row.CLIENTE || row.nombre || 'Usuario').trim() || 'Usuario';
+                const asesor = String(row.ASESOR || req?.user?.name || req?.user?.email || 'Agente').trim() || 'Agente';
+                const producto = String(row.PRODUCTOS_A || row.PRODUCTS_A || row.producto || '').trim();
+                const variablesToSend = [cliente, asesor, producto];
                 // Log explícito para depuración
                 console.log('Variables enviadas a Twilio:', variablesToSend);
                 const res = await this.twilioService.sendWhatsAppTemplate({
@@ -151,34 +144,10 @@ let MessagesBulkController = class MessagesBulkController {
                 results.push({ to, status: 'sent', sid: res.sid });
                 console.log(`Mensaje enviado a ${to}: SID ${res.sid}`);
                 // 4. Registrar mensaje en la conversación usando la plantilla y parámetros
-                let mensajePlantilla = '';
-                if (contentSid === 'HX99ead19f74793c6b5f0e1777523f1815') {
-                    // bienvenida_logi
-                    mensajePlantilla = `Hola ${row.nombre || 'Usuario'} 👋\n¡Bienvenido/a! Estoy aquí para ayudarte con tus pedidos y soporte.`;
-                }
-                else if (contentSid === 'HX63433782a538101c777138bca250cc54') {
-                    // lm_buen_dia_empaque
-                    const producto = row.PRODUCTS_A || row.PRODUCTOS_A || row.producto || '';
-                    mensajePlantilla = `Buenos días, ${row.CLIENTE}. Le hablamos de Logimarket.\nRecibimos su pedido de ${producto}, con número de orden ${row.ORDEN} y se encuentra en proceso de empaque.\nLe avisaremos en cuanto esté listo para su entrega. ¡Gracias por su preferencia!`;
-                }
-                else if (contentSid === 'HX9efa55d55fa323d5efa09d82d0a1c484') {
-                    // lm_buen_dia_en_entrega
-                    const producto = row.PRODUCTOS_A || row.PRODUCTS_A || row.producto || '';
-                    mensajePlantilla = `Buen día, ${row.CLIENTE}. Le hablamos de Logimarket.\nSu pedido con número de orden ${row.ORDEN}, producto ${producto}, se encuentra en proceso de entrega.\nSi desea compartir alguna indicación adicional para la entrega, por favor responda a este mensaje. ¡Gracias!`;
-                }
-                else if (contentSid === 'HX43be0016968ad04dbe7a7a2408a5d24b') {
-                    // lm_buen_dia_proximo_entregar_confirma
-                    const producto = row.PRODUCTOS_A || row.PRODUCTS_A || row.producto || '';
-                    mensajePlantilla = `Buenos días, ${row.CLIENTE}. Le hablamos de Logimarket.\nSu pedido con número de orden ${row.ORDEN}, producto ${producto} está próximo a entregarse. ¿Puede confirmar su disponibilidad para recibirlo el día de hoy?\nQuedamos atentos a su respuesta. ¡Gracias!`;
-                }
-                else if (contentSid === 'HXdf73cf1db9d8dc586d94d576fa2e140c') {
-                    // lm_mensajeria_disponibilidad_paquete
-                    const producto = row.PRODUCTOS_A || row.PRODUCTS_A || row.producto || '';
-                    mensajePlantilla = `Estimado/a ${row.CLIENTE},\n\nSoy de mensajería Logimarket. Deseo que se encuentre bien.\nLe escribo porque aún tenemos su paquete de ${producto}.\nSi ya está en condiciones de recibirlo, por favor confírmenos su disponibilidad.\n\n¡Gracias!`;
-                }
-                else {
-                    mensajePlantilla = `Mensaje enviado.`;
-                }
+                const mensajePlantilla = CUSTOMER_SERVICE_TEMPLATE_BODY
+                    .replace('{{1}}', cliente)
+                    .replace('{{2}}', asesor)
+                    .replace('{{3}}', producto);
                 await this.messagesService.create({
                     conversation_id: conversation.id,
                     sender_type: 'agent',
@@ -186,12 +155,25 @@ let MessagesBulkController = class MessagesBulkController {
                     message_type: 'text',
                     is_from_whatsapp: false,
                     whatsapp_message_id: res.sid,
+                    metadata: {
+                        campaignId,
+                        campaignName,
+                        campaignCode,
+                        templateSid: contentSid,
+                        source: 'bulk',
+                        send: {
+                            ok: true,
+                            externalMessageId: res.sid,
+                            to,
+                        },
+                    },
                     created_at: new Date(),
                 });
             }
             catch (err) {
-                results.push({ to: String(row.telefono), status: 'error', error: err.message });
-                console.log(`Error enviando a ${row.telefono}:`, err.message);
+                const errorTo = String(row.telefono || row.PHONE_A || row.phone || row.telefono_cliente || '').trim();
+                results.push({ to: errorTo, status: 'error', error: err.message });
+                console.log(`Error enviando a ${errorTo}:`, err.message);
             }
         }
         console.log('Resultados de envío masivo:', results);
@@ -203,6 +185,61 @@ __decorate([
     (0, common_1.Post)('bulk'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file')),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Enviar mensajes masivos por WhatsApp',
+        description: 'Recibe contactos por JSON o archivo Excel, envía una plantilla aprobada por Twilio y registra la conversación/mensaje con metadata de campaña.',
+    }),
+    (0, swagger_1.ApiConsumes)('application/json', 'multipart/form-data'),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            oneOf: [
+                {
+                    type: 'object',
+                    properties: {
+                        campaignId: { type: 'string', example: 'bulk_1710000000000' },
+                        campaignCode: { type: 'string', example: 'CMP-20260612094500' },
+                        campaignName: { type: 'string', example: 'Recuperación entregas junio' },
+                        campaignNotes: { type: 'string', example: 'Segmento de pedidos pendientes' },
+                        templateSid: { type: 'string', example: CUSTOMER_SERVICE_TEMPLATE_SID },
+                        contacts: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    CLIENTE: { type: 'string', example: 'Juan Pérez' },
+                                    PHONE_A: { type: 'string', example: '+525512345678' },
+                                    ORDEN: { type: 'string', example: 'ORD-123' },
+                                    PRODUCTS_A: { type: 'string', example: 'Producto de prueba' },
+                                },
+                            },
+                        },
+                    },
+                    required: ['templateSid', 'contacts'],
+                },
+                {
+                    type: 'object',
+                    properties: {
+                        file: { type: 'string', format: 'binary' },
+                        templateSid: { type: 'string' },
+                        campaignName: { type: 'string' },
+                    },
+                    required: ['file', 'templateSid'],
+                },
+            ],
+        },
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 201,
+        description: 'Resultado del envío masivo',
+        schema: {
+            type: 'object',
+            properties: {
+                success: { type: 'boolean', example: true },
+                rows: { type: 'number', example: 25 },
+                results: { type: 'array', items: { type: 'object' } },
+            },
+        },
+    }),
     __param(0, (0, common_1.UploadedFile)()),
     __param(1, (0, common_1.Body)()),
     __param(2, (0, common_1.Req)()),
@@ -211,6 +248,8 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], MessagesBulkController.prototype, "uploadBulk", null);
 exports.MessagesBulkController = MessagesBulkController = __decorate([
+    (0, swagger_1.ApiTags)('Bulk Messages - Envíos masivos'),
+    (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.Controller)('messages'),
     __param(0, (0, common_1.Inject)(twilio_service_1.TwilioService)),
     __param(1, (0, common_1.Inject)(contacts_service_1.ContactsService)),

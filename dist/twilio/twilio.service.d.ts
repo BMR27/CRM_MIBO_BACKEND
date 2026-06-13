@@ -1,5 +1,7 @@
 export declare class TwilioService {
     private client;
+    private readonly allowedWATemplateName;
+    private readonly allowedWATemplateSid;
     constructor();
     /**
      * Lista plantillas aprobadas de WhatsApp en Twilio usando Content API vía HTTP

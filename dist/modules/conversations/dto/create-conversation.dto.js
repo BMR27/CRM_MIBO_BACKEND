@@ -11,29 +11,35 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreateConversationDto = void 0;
 const class_validator_1 = require("class-validator");
+const swagger_1 = require("@nestjs/swagger");
 class CreateConversationDto {
 }
 exports.CreateConversationDto = CreateConversationDto;
 __decorate([
+    (0, swagger_1.ApiProperty)({ example: 'uuid-contacto' }),
     (0, class_validator_1.IsUUID)(),
     __metadata("design:type", String)
 ], CreateConversationDto.prototype, "contact_id", void 0);
 __decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'uuid-agente' }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsUUID)(),
     __metadata("design:type", String)
 ], CreateConversationDto.prototype, "assigned_agent_id", void 0);
 __decorate([
+    (0, swagger_1.ApiPropertyOptional)({ enum: ['active', 'paused', 'resolved'], example: 'active' }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsEnum)(['active', 'paused', 'resolved']),
     __metadata("design:type", String)
 ], CreateConversationDto.prototype, "status", void 0);
 __decorate([
+    (0, swagger_1.ApiPropertyOptional)({ enum: ['low', 'medium', 'high'], example: 'medium' }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsEnum)(['low', 'medium', 'high']),
     __metadata("design:type", String)
 ], CreateConversationDto.prototype, "priority", void 0);
 __decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 'Cliente solicita seguimiento por WhatsApp' }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)

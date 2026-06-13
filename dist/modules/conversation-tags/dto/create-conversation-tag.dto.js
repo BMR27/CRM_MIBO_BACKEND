@@ -11,14 +11,17 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreateConversationTagDto = void 0;
 const class_validator_1 = require("class-validator");
+const swagger_1 = require("@nestjs/swagger");
 class CreateConversationTagDto {
 }
 exports.CreateConversationTagDto = CreateConversationTagDto;
 __decorate([
+    (0, swagger_1.ApiProperty)({ example: 'uuid-conversacion' }),
     (0, class_validator_1.IsUUID)(),
     __metadata("design:type", String)
 ], CreateConversationTagDto.prototype, "conversation_id", void 0);
 __decorate([
+    (0, swagger_1.ApiProperty)({ example: 'seguimiento' }),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateConversationTagDto.prototype, "tag", void 0);
