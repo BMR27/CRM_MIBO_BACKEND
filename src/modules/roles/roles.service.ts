@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { Role } from './entities/role.entity';
 
 @Injectable()
@@ -10,9 +10,9 @@ export class RolesService {
     private rolesRepository: Repository<Role>,
   ) {}
 
-  async findAll(): Promise<Role[]> {
+  async findAll(tenantId: string): Promise<Role[]> {
     return this.rolesRepository.find({
-      where: { is_active: true },
+      where: { tenant_id: tenantId, is_active: true },
       order: { name: 'ASC' },
     });
   }
@@ -21,8 +21,8 @@ export class RolesService {
     return this.rolesRepository.findOne({ where: { id } });
   }
 
-  async findByName(name: string): Promise<Role> {
-    return this.rolesRepository.findOne({ where: { name } });
+  async findByNameForTenant(tenantId: string, name: string): Promise<Role> {
+    return this.rolesRepository.findOne({ where: { tenant_id: tenantId, name } });
   }
 
   async create(data: Partial<Role>): Promise<Role> {
@@ -39,11 +39,8 @@ export class RolesService {
     await this.rolesRepository.update(id, { is_active: false });
   }
 
-  async seedDefaultRoles(): Promise<void> {
-    const existingRoles = await this.rolesRepository.count();
-    if (existingRoles > 0) return;
-
-    const defaultRoles = [
+  private defaultRolesTemplate() {
+    return [
       {
         name: 'Administrador',
         description: 'Acceso completo al sistema',
@@ -101,9 +98,21 @@ export class RolesService {
         },
       },
     ];
+  }
 
-    for (const roleData of defaultRoles) {
-      await this.create(roleData);
+  /**
+   * Siembra los 4 roles por defecto para un tenant específico.
+   * Si se pasa un `manager` (ej. dentro de una transacción de signup-company), lo usa en vez del repo propio.
+   */
+  async seedDefaultRolesForTenant(tenantId: string, manager?: EntityManager): Promise<void> {
+    const repo = manager ? manager.getRepository(Role) : this.rolesRepository;
+
+    const existingRoles = await repo.count({ where: { tenant_id: tenantId } });
+    if (existingRoles > 0) return;
+
+    for (const roleData of this.defaultRolesTemplate()) {
+      const role = repo.create({ ...roleData, tenant_id: tenantId });
+      await repo.save(role);
     }
   }
 }

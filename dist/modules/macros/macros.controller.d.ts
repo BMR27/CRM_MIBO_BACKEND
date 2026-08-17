@@ -4,7 +4,7 @@ import { UpdateMacroDto } from './dto/update-macro.dto';
 export declare class MacrosController {
     private readonly macrosService;
     constructor(macrosService: MacrosService);
-    create(createMacroDto: CreateMacroDto): Promise<CreateMacroDto & import("./entities/macro.entity").Macro>;
+    create(createMacroDto: CreateMacroDto): Promise<import("./entities/macro.entity").Macro>;
     findAll(): Promise<import("./entities/macro.entity").Macro[]>;
     findOne(id: string): Promise<import("./entities/macro.entity").Macro>;
     findByShortcut(shortcut: string): Promise<import("./entities/macro.entity").Macro>;

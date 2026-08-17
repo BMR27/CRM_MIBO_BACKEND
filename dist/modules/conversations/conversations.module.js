@@ -12,6 +12,8 @@ const typeorm_1 = require("@nestjs/typeorm");
 const conversation_entity_1 = require("./entities/conversation.entity");
 const conversations_service_1 = require("./conversations.service");
 const conversations_controller_1 = require("./conversations.controller");
+const conversations_tokens_1 = require("./conversations.tokens");
+const tenant_scoped_repository_provider_1 = require("../../common/tenant/tenant-scoped-repository.provider");
 // ...existing code...
 const messages_module_1 = require("../messages/messages.module");
 const contacts_module_1 = require("../contacts/contacts.module");
@@ -23,7 +25,10 @@ exports.ConversationsModule = ConversationsModule;
 exports.ConversationsModule = ConversationsModule = __decorate([
     (0, common_1.Module)({
         imports: [typeorm_1.TypeOrmModule.forFeature([conversation_entity_1.Conversation]), (0, common_2.forwardRef)(() => messages_module_1.MessagesModule), contacts_module_1.ContactsModule, (0, common_2.forwardRef)(() => whatsapp_module_1.WhatsappModule)],
-        providers: [conversations_service_1.ConversationsService],
+        providers: [
+            conversations_service_1.ConversationsService,
+            (0, tenant_scoped_repository_provider_1.tenantScopedRepositoryProvider)(conversations_tokens_1.CONVERSATION_REPO, conversation_entity_1.Conversation),
+        ],
         controllers: [conversations_controller_1.ConversationsController],
         exports: [conversations_service_1.ConversationsService],
     })

@@ -12,13 +12,15 @@ const typeorm_1 = require("@nestjs/typeorm");
 const contact_entity_1 = require("./entities/contact.entity");
 const contacts_service_1 = require("./contacts.service");
 const contacts_controller_1 = require("./contacts.controller");
+const contacts_tokens_1 = require("./contacts.tokens");
+const tenant_scoped_repository_provider_1 = require("../../common/tenant/tenant-scoped-repository.provider");
 let ContactsModule = class ContactsModule {
 };
 exports.ContactsModule = ContactsModule;
 exports.ContactsModule = ContactsModule = __decorate([
     (0, common_1.Module)({
         imports: [typeorm_1.TypeOrmModule.forFeature([contact_entity_1.Contact])],
-        providers: [contacts_service_1.ContactsService],
+        providers: [contacts_service_1.ContactsService, (0, tenant_scoped_repository_provider_1.tenantScopedRepositoryProvider)(contacts_tokens_1.CONTACT_REPO, contact_entity_1.Contact)],
         controllers: [contacts_controller_1.ContactsController],
         exports: [contacts_service_1.ContactsService],
     })

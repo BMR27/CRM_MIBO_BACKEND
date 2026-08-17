@@ -1,10 +1,43 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
@@ -14,51 +47,97 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
-const jwt_1 = require("@nestjs/jwt");
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
 const swagger_1 = require("@nestjs/swagger");
 const users_service_1 = require("../users/users.service");
+const user_entity_1 = require("../users/entities/user.entity");
 const roles_service_1 = require("../roles/roles.service");
-const passport_1 = require("@nestjs/passport");
+const tenants_service_1 = require("../tenants/tenants.service");
+const role_entity_1 = require("../roles/entities/role.entity");
+const auth_service_1 = require("./auth.service");
+const jwt_auth_guard_1 = require("./guards/jwt-auth.guard");
+const bcrypt = __importStar(require("bcryptjs"));
 let AuthController = class AuthController {
-    constructor(jwtService, usersService, rolesService) {
-        this.jwtService = jwtService;
+    constructor(usersService, rolesService, tenantsService, authService, dataSource) {
         this.usersService = usersService;
         this.rolesService = rolesService;
+        this.tenantsService = tenantsService;
+        this.authService = authService;
+        this.dataSource = dataSource;
     }
-    async signup(body) {
+    async signupCompany(body) {
+        if (!body.companyName || !body.adminEmail || !body.adminPassword) {
+            throw new common_1.BadRequestException('companyName, adminEmail y adminPassword son requeridos');
+        }
+        if (body.legalType && !['fisica', 'moral'].includes(body.legalType)) {
+            throw new common_1.BadRequestException('legalType debe ser "fisica" o "moral"');
+        }
         try {
-            // Verificar si el usuario ya existe
-            const existingUser = await this.usersService.findByEmail(body.email);
-            if (existingUser) {
+            return await this.dataSource.transaction(async (manager) => {
+                const tenant = await this.tenantsService.createTenant({
+                    name: body.companyName,
+                    legal_type: body.legalType || 'fisica',
+                    tax_id: body.taxId,
+                    legal_name: body.legalType === 'moral' ? body.companyName : undefined,
+                }, manager);
+                await this.rolesService.seedDefaultRolesForTenant(tenant.id, manager);
+                const adminRole = await manager.findOne(role_entity_1.Role, {
+                    where: { tenant_id: tenant.id, name: 'Administrador' },
+                });
+                const hashedPassword = await bcrypt.hash(body.adminPassword, 10);
+                const user = manager.create(user_entity_1.User, {
+                    tenant_id: tenant.id,
+                    email: body.adminEmail,
+                    password_hash: hashedPassword,
+                    name: body.adminName || body.adminEmail.split('@')[0],
+                    role_id: adminRole?.id || null,
+                    status: 'offline',
+                });
+                const savedUser = await manager.save(user_entity_1.User, user);
+                const token = this.authService.signToken({ id: savedUser.id, email: savedUser.email, role: adminRole }, tenant.id);
+                return {
+                    message: 'Compañía registrada exitosamente',
+                    access_token: token,
+                    token_type: 'Bearer',
+                    expires_in: '7d',
+                    tenant: { id: tenant.id, name: tenant.name, slug: tenant.slug },
+                    user: {
+                        id: savedUser.id,
+                        email: savedUser.email,
+                        name: savedUser.name,
+                        role: adminRole?.name || null,
+                        tenant_id: tenant.id,
+                    },
+                };
+            });
+        }
+        catch (error) {
+            if (error?.code === '23505') {
                 throw new common_1.BadRequestException('El email ya está registrado');
             }
-            // Rol por defecto: Agente
-            const agentRole = await this.rolesService.findByName('Agente');
+            throw new common_1.BadRequestException(error.message || 'Error al registrar la compañía');
+        }
+    }
+    async signup(req, body) {
+        // Nota: no se usa @Roles('admin') aquí porque el RolesGuard global (APP_GUARD) se ejecuta
+        // antes que los guards declarados a nivel de método como JwtAuthGuard, por lo que
+        // request.user todavía no existiría cuando RolesGuard lo revisa. Se valida el rol a mano.
+        if (req.user.role !== 'admin') {
+            throw new common_1.ForbiddenException('Solo un administrador puede registrar nuevos agentes');
+        }
+        try {
+            const tenantId = req.user.tenantId;
+            const agentRole = await this.rolesService.findByNameForTenant(tenantId, 'Agente');
             const user = await this.usersService.create({
                 email: body.email,
                 password: body.password,
                 full_name: body.name || body.email.split('@')[0],
                 role_id: agentRole?.id || null,
+                tenant_id: tenantId,
             });
-            // Cargar usuario con rol
-            const userWithRole = await this.usersService.findByEmailWithRole(user.email);
-            // Normalizar rol para JWT ('admin' | 'supervisor' | 'agent')
-            const normalizeRole = (name) => {
-                const n = (name || '').toLowerCase();
-                if (n.startsWith('admin'))
-                    return 'admin';
-                if (n.startsWith('super'))
-                    return 'supervisor';
-                if (n.startsWith('agente') || n.startsWith('agent'))
-                    return 'agent';
-                return 'agent';
-            };
-            // Generar token JWT con rol
-            const token = this.jwtService.sign({
-                email: userWithRole.email,
-                sub: userWithRole.id,
-                role: normalizeRole(userWithRole.role?.name),
-            }, { expiresIn: '7d' });
+            const userWithRole = await this.usersService.findById(user.id);
+            const token = this.authService.signToken({ id: userWithRole.id, email: userWithRole.email, role: userWithRole.role }, tenantId);
             return {
                 message: 'Usuario registrado exitosamente',
                 access_token: token,
@@ -69,41 +148,28 @@ let AuthController = class AuthController {
                     email: userWithRole.email,
                     name: userWithRole.name,
                     role: userWithRole.role?.name || null,
+                    tenant_id: tenantId,
                 },
             };
         }
         catch (error) {
+            if (error?.code === '23505') {
+                throw new common_1.BadRequestException('El email ya está registrado');
+            }
             throw new common_1.BadRequestException(error.message || 'Error al registrar usuario');
         }
     }
     async login(body) {
         try {
-            // Buscar usuario por email con rol
             const user = await this.usersService.findByEmailWithRole(body.email);
             if (!user) {
                 throw new common_1.BadRequestException('Email o contraseña inválidos');
             }
-            // Validar contraseña
             const isValidPassword = await this.usersService.validatePassword(user, body.password);
             if (!isValidPassword) {
                 throw new common_1.BadRequestException('Email o contraseña inválidos');
             }
-            // Generar token JWT con información del rol
-            const normalizeRole = (name) => {
-                const n = (name || '').toLowerCase();
-                if (n.startsWith('admin'))
-                    return 'admin';
-                if (n.startsWith('super'))
-                    return 'supervisor';
-                if (n.startsWith('agente') || n.startsWith('agent'))
-                    return 'agent';
-                return 'agent';
-            };
-            const token = this.jwtService.sign({
-                email: user.email,
-                sub: user.id,
-                role: normalizeRole(user.role?.name),
-            }, { expiresIn: '7d' });
+            const token = this.authService.signToken({ id: user.id, email: user.email, role: user.role }, user.tenant_id);
             return {
                 access_token: token,
                 token_type: 'Bearer',
@@ -114,6 +180,7 @@ let AuthController = class AuthController {
                     name: user.name,
                     role: user.role?.name || null,
                     role_id: user.role_id,
+                    tenant_id: user.tenant_id,
                 },
             };
         }
@@ -122,8 +189,6 @@ let AuthController = class AuthController {
         }
     }
     async getMe(req) {
-        // El usuario viene del JWT strategy
-        const userId = req.user.sub;
         const user = await this.usersService.findByEmailWithRole(req.user.email);
         if (!user) {
             throw new common_1.BadRequestException('Usuario no encontrado');
@@ -134,23 +199,47 @@ let AuthController = class AuthController {
             name: user.name,
             role: user.role?.name || null,
             role_id: user.role_id,
-        };
-    }
-    generateTestToken() {
-        const token = this.jwtService.sign({ email: 'test@example.com', sub: 'test-user', role: 'admin' }, { expiresIn: '7d' });
-        return {
-            access_token: token,
-            message: 'Usa este token en el header Authorization: Bearer ' + token,
+            tenant_id: user.tenant_id,
         };
     }
 };
 exports.AuthController = AuthController;
 __decorate([
-    (0, common_1.Post)('signup'),
+    (0, common_1.Post)('signup-company'),
     (0, common_1.HttpCode)(201),
     (0, swagger_1.ApiOperation)({
-        summary: 'Registrarse',
-        description: 'Crea una nueva cuenta de usuario y retorna un token JWT.',
+        summary: 'Registrar compañía',
+        description: 'Crea un nuevo tenant (espacio de trabajo) junto con su usuario administrador. Retorna un token JWT.',
+    }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: 'object',
+            properties: {
+                legalType: { type: 'string', enum: ['fisica', 'moral'], example: 'moral' },
+                companyName: { type: 'string', example: 'Acme Inc.' },
+                taxId: { type: 'string', example: 'ACM010101AAA' },
+                adminName: { type: 'string', example: 'Jane Doe' },
+                adminEmail: { type: 'string', example: 'jane@acme.com' },
+                adminPassword: { type: 'string', example: 'password123' },
+            },
+            required: ['legalType', 'companyName', 'adminName', 'adminEmail', 'adminPassword'],
+        },
+    }),
+    (0, swagger_1.ApiResponse)({ status: 201, description: 'Compañía y usuario administrador creados. Retorna JWT.' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Datos inválidos o email ya registrado' }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "signupCompany", null);
+__decorate([
+    (0, common_1.Post)('signup'),
+    (0, common_1.HttpCode)(201),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Registrar agente',
+        description: 'Crea un nuevo usuario/agente dentro del tenant del administrador autenticado. Requiere JWT de un admin.',
     }),
     (0, swagger_1.ApiBody)({
         schema: {
@@ -163,17 +252,12 @@ __decorate([
             required: ['email', 'password'],
         },
     }),
-    (0, swagger_1.ApiResponse)({
-        status: 201,
-        description: 'Registro exitoso. Retorna usuario y JWT token.',
-    }),
-    (0, swagger_1.ApiResponse)({
-        status: 400,
-        description: 'El email ya está registrado',
-    }),
-    __param(0, (0, common_1.Body)()),
+    (0, swagger_1.ApiResponse)({ status: 201, description: 'Registro exitoso. Retorna usuario y JWT token.' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'El email ya está registrado' }),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "signup", null);
 __decorate([
@@ -226,7 +310,7 @@ __decorate([
 ], AuthController.prototype, "login", null);
 __decorate([
     (0, common_1.Get)('me'),
-    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiBearerAuth)(),
     (0, swagger_1.ApiOperation)({
         summary: 'Obtener información del usuario actual',
@@ -255,38 +339,17 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "getMe", null);
-__decorate([
-    (0, common_1.Post)('test-token'),
-    (0, common_1.HttpCode)(200),
-    (0, swagger_1.ApiOperation)({
-        summary: 'Generar token de prueba',
-        description: 'Genera un token JWT de prueba válido sin validar credenciales. Útil solo para testing.',
-    }),
-    (0, swagger_1.ApiResponse)({
-        status: 200,
-        description: 'Token generado',
-        schema: {
-            type: 'object',
-            properties: {
-                access_token: { type: 'string' },
-                message: {
-                    type: 'string',
-                    example: 'Usa este token en Authorization header: Bearer {token}',
-                },
-            },
-        },
-    }),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
-], AuthController.prototype, "generateTestToken", null);
 exports.AuthController = AuthController = __decorate([
     (0, swagger_1.ApiTags)('Auth - Autenticación'),
     (0, common_1.Controller)('auth'),
-    __param(1, (0, common_1.Inject)(users_service_1.UsersService)),
-    __param(2, (0, common_1.Inject)(roles_service_1.RolesService)),
-    __metadata("design:paramtypes", [jwt_1.JwtService,
-        users_service_1.UsersService,
-        roles_service_1.RolesService])
+    __param(0, (0, common_1.Inject)(users_service_1.UsersService)),
+    __param(1, (0, common_1.Inject)(roles_service_1.RolesService)),
+    __param(2, (0, common_1.Inject)(tenants_service_1.TenantsService)),
+    __param(4, (0, typeorm_1.InjectDataSource)()),
+    __metadata("design:paramtypes", [users_service_1.UsersService,
+        roles_service_1.RolesService,
+        tenants_service_1.TenantsService,
+        auth_service_1.AuthService,
+        typeorm_2.DataSource])
 ], AuthController);
 //# sourceMappingURL=auth.controller.js.map

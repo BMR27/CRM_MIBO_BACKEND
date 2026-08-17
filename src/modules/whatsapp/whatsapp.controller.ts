@@ -2,9 +2,11 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Body,
   Query,
   Param,
+  Request,
   UseGuards,
   UseInterceptors,
   HttpCode,
@@ -14,11 +16,12 @@ import {
   Res,
   StreamableFile,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { WhatsappService } from './whatsapp.service';
+import { WhatsappIntegrationsService } from './whatsapp-integrations.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
+import { TenantContext } from '../../common/tenant/tenant-context';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -26,7 +29,6 @@ import {
   ApiResponse,
   ApiBody,
   ApiQuery,
-  ApiHeader,
   ApiConsumes,
 } from '@nestjs/swagger';
 
@@ -35,7 +37,7 @@ import {
 export class WhatsappController {
   constructor(
     private whatsappService: WhatsappService,
-    private configService: ConfigService,
+    private integrationsService: WhatsappIntegrationsService,
   ) {}
 
   /**
@@ -46,7 +48,8 @@ export class WhatsappController {
   @ApiOperation({
     summary: 'Verificar webhook de WhatsApp Cloud API',
     description:
-      'Endpoint de verificación de Meta (hub.challenge). Se usa al guardar el webhook en el panel de Meta.',
+      'Endpoint de verificación de Meta (hub.challenge). Se usa al guardar el webhook en el panel de Meta. ' +
+      'El verify_token identifica a qué tenant pertenece la suscripción.',
   })
   @ApiQuery({ name: 'hub.mode', required: false })
   @ApiQuery({ name: 'hub.verify_token', required: false })
@@ -56,8 +59,8 @@ export class WhatsappController {
     @Query('hub.verify_token') token: string,
     @Query('hub.challenge') challenge: string,
   ) {
-    const verifyToken = this.configService.get<string>('WHATSAPP_VERIFY_TOKEN');
-    if (mode === 'subscribe' && token && verifyToken && token === verifyToken) {
+    const tenantId = token ? await this.whatsappService.resolveTenantForVerifyToken(token) : null;
+    if (mode === 'subscribe' && token && tenantId) {
       return challenge;
     }
     throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
@@ -69,7 +72,8 @@ export class WhatsappController {
     summary: 'Recibir mensajes de WhatsApp',
     description:
       'Endpoint webhook para Twilio y WhatsApp Cloud API. ' +
-      'Twilio envía datos en formato form-encoded, Cloud API envía JSON.',
+      'Twilio envía datos en formato form-encoded, Cloud API envía JSON. El tenant se resuelve ' +
+      'automáticamente por el AccountSid (Twilio) o phone_number_id (Cloud API).',
   })
   @ApiBody({
     schema: {
@@ -83,220 +87,87 @@ export class WhatsappController {
       },
     },
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Mensaje recibido y procesado correctamente',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-      },
-    },
-  })
-    async handleWebhook(@Body() body: any, @Res() res: Response): Promise<void> {
-    await this.whatsappService.handleWebhook(body);
+  @ApiResponse({ status: 200, description: 'Mensaje recibido y procesado correctamente' })
+  async handleWebhook(@Body() body: any, @Res() res: Response): Promise<void> {
+    const tenantId = await this.whatsappService.resolveTenantForWebhook(body);
+    if (tenantId) {
+      await TenantContext.run({ tenantId }, async () => {
+        await this.whatsappService.handleWebhook(body);
+      });
+    }
     res.setHeader('Content-Type', 'application/json');
     res.status(200).send(JSON.stringify({ success: true }));
   }
 
-  /**
-   * Health check - Verificar conexión con Twilio
-   */
   @Get('health')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @HttpCode(200)
   @ApiOperation({
     summary: 'Verificar estado de conexión',
-    description:
-      'Comprueba que la conexión con Twilio está activa y las credenciales son válidas. ' +
-      'Sin autenticación requerida. Perfecto para monitoreo.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Conexión activa con Twilio',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        accountSid: { type: 'string', example: 'ACxxxxxxxxxxxxxxxxxx' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Error en la conexión',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: false },
-        error: { type: 'string', example: 'No account found' },
-      },
-    },
+    description: 'Comprueba si el tenant autenticado tiene WhatsApp configurado y funcional.',
   })
   async healthCheck() {
     return this.whatsappService.healthCheck();
   }
 
-  /**
-   * Enviar mensaje de texto por WhatsApp
-   */
   @Post('send')
-  @HttpCode(200)
-  @ApiOperation({
-    summary: 'Enviar mensaje de texto',
-    description:
-      'Envía un mensaje de texto a un número de WhatsApp. ' +
-      'Requiere JWT autenticado. El número puede estar con o sin prefijo "whatsapp:+".',
-  })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        phone_number: {
-          type: 'string',
-          example: '+34612345678',
-          description: 'Número del destinatario con código de país',
-        },
-        message: {
-          type: 'string',
-          example: 'Hola, este es un mensaje de prueba',
-          description: 'Contenido del mensaje',
-        },
-      },
-      required: ['phone_number', 'message'],
-    },
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Mensaje enviado exitosamente',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        whatsapp_message_id: {
-          type: 'string',
-          example: 'SM1234567890abcdef',
-          description: 'ID de Twilio para rastrear el mensaje',
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Error al enviar',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: false },
-        error: {
-          type: 'string',
-          example: 'Invalid phone number format',
-        },
-      },
-    },
-  })
-  async sendMessage(
-    @Body() body: { phone_number: string; message: string },
-  ) {
-    return this.whatsappService.sendMessage(
-      body.phone_number,
-      body.message,
-    );
-  }
-
-  /**
-   * Enviar mensaje con plantilla
-   */
-  @Post('send-template')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @HttpCode(200)
   @ApiOperation({
-    summary: 'Enviar mensaje con plantilla',
-    description:
-      'Envía un mensaje usando un template. ' +
-      'Si WHATSAPP_ACCESS_TOKEN y WHATSAPP_PHONE_NUMBER_ID están configurados, se envía como template real de WhatsApp Cloud API (requerido fuera de la ventana de 24h). ' +
-      'Si no, hace fallback y envía texto plano (Twilio o sin Cloud API).',
+    summary: 'Enviar mensaje de texto',
+    description: 'Envía un mensaje de texto a un número de WhatsApp usando la configuración del tenant autenticado.',
   })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
-        phone_number: {
-          type: 'string',
-          example: '+34612345678',
-          description: 'Número del destinatario',
-        },
-        template_name: {
-          type: 'string',
-          example: 'order_confirmation',
-          description: 'Nombre de la plantilla',
-        },
-        parameters: {
-          type: 'array',
-          items: { type: 'string' },
-          example: ['#12345', 'Juan Pérez'],
-          description: 'Parámetros para la plantilla (opcional)',
-        },
+        phone_number: { type: 'string', example: '+34612345678' },
+        message: { type: 'string', example: 'Hola, este es un mensaje de prueba' },
+      },
+      required: ['phone_number', 'message'],
+    },
+  })
+  async sendMessage(@Body() body: { phone_number: string; message: string }) {
+    return this.whatsappService.sendMessage(body.phone_number, body.message);
+  }
+
+  @Post('send-template')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Enviar mensaje con plantilla' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        phone_number: { type: 'string', example: '+34612345678' },
+        template_name: { type: 'string', example: 'order_confirmation' },
+        parameters: { type: 'array', items: { type: 'string' }, example: ['#12345', 'Juan Pérez'] },
       },
       required: ['phone_number', 'template_name'],
     },
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Mensaje enviado',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        whatsapp_message_id: { type: 'string' },
-      },
-    },
-  })
   async sendTemplate(
-    @Body()
-    body: {
-      phone_number: string;
-      template_name: string;
-      parameters?: string[];
-    },
+    @Body() body: { phone_number: string; template_name: string; parameters?: string[] },
   ) {
-    return this.whatsappService.sendTemplateMessage(
-      body.phone_number,
-      body.template_name,
-      body.parameters,
-    );
+    return this.whatsappService.sendTemplateMessage(body.phone_number, body.template_name, body.parameters);
   }
 
-  /**
-   * Enviar mensaje con media (Cloud API)
-   */
   @Post('send-media')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @HttpCode(200)
-  @ApiOperation({
-    summary: 'Enviar media (imagen/documento/audio/video/sticker)',
-    description:
-      'Envía un archivo como media usando WhatsApp Cloud API. ' +
-      'Requiere WHATSAPP_ACCESS_TOKEN y WHATSAPP_PHONE_NUMBER_ID configurados. ' +
-      'El archivo se sube primero a /{phone_number_id}/media y luego se envía el mensaje referenciando el media_id.',
-  })
+  @ApiOperation({ summary: 'Enviar media (imagen/documento/audio/video/sticker)' })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
-        phone_number: {
-          type: 'string',
-          example: '+5215548780484',
-          description: 'Número del destinatario (E.164)',
-        },
-        type: {
-          type: 'string',
-          enum: ['image', 'document', 'audio', 'video', 'sticker'],
-          example: 'image',
-        },
+        phone_number: { type: 'string', example: '+5215548780484' },
+        type: { type: 'string', enum: ['image', 'document', 'audio', 'video', 'sticker'], example: 'image' },
         caption: { type: 'string', example: 'Mira esto' },
         filename: { type: 'string', example: 'archivo.pdf' },
         file: { type: 'string', format: 'binary' },
@@ -307,12 +178,7 @@ export class WhatsappController {
   async sendMedia(
     @UploadedFile() file: any,
     @Body()
-    body: {
-      phone_number: string;
-      type: 'image' | 'document' | 'audio' | 'video' | 'sticker';
-      caption?: string;
-      filename?: string;
-    },
+    body: { phone_number: string; type: 'image' | 'document' | 'audio' | 'video' | 'sticker'; caption?: string; filename?: string },
   ) {
     if (!file?.buffer?.length) {
       throw new HttpException('file is required', HttpStatus.BAD_REQUEST);
@@ -327,40 +193,18 @@ export class WhatsappController {
     });
   }
 
-  /**
-   * Descargar/visualizar media desde WhatsApp Cloud API (proxy)
-   */
   @Get('media/:mediaId')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @HttpCode(200)
-  @ApiOperation({
-    summary: 'Descargar/visualizar media (proxy Cloud API)',
-    description:
-      'Dado un media_id de WhatsApp Cloud API, obtiene la URL de descarga y hace proxy del binario. ' +
-      'Útil para mostrar imágenes/documentos/audios/videos/stickers en el CRM sin exponer el access token.',
-  })
-  @ApiQuery({
-    name: 'filename',
-    required: false,
-    description: 'Nombre sugerido para Content-Disposition',
-    example: 'archivo.pdf',
-  })
-  @ApiQuery({
-    name: 'token',
-    required: false,
-    description:
-      'JWT opcional por query param. Útil para renderizar media en <img src>/<a href> cuando no se puede enviar Authorization header.',
-  })
-  @ApiResponse({ status: 200, description: 'Binario del media' })
+  @ApiOperation({ summary: 'Descargar/visualizar media (proxy Cloud API)' })
+  @ApiQuery({ name: 'filename', required: false })
   async downloadMedia(
     @Param('mediaId') mediaId: string,
     @Query('filename') filename: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.whatsappService.downloadCloudMedia(mediaId, {
-      filename,
-    });
+    const result = await this.whatsappService.downloadCloudMedia(mediaId, { filename });
 
     if (result.contentType) {
       res.setHeader('Content-Type', result.contentType);
@@ -372,75 +216,73 @@ export class WhatsappController {
     return new StreamableFile(result.stream);
   }
 
-  /**
-   * Obtener estado de un mensaje
-   */
   @Get('message-status')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @HttpCode(200)
-  @ApiOperation({
-    summary: 'Obtener estado de mensaje',
-    description:
-      'Consulta el estado actual de un mensaje enviado. ' +
-      'Posibles estados: accepted, queued, sending, sent, failed, delivered, undelivered, read.',
-  })
-  @ApiQuery({
-    name: 'message_id',
-    type: 'string',
-    description: 'ID de Twilio del mensaje (MessageSid)',
-    example: 'SM1234567890abcdef',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Estado obtenido',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        status: {
-          type: 'string',
-          example: 'sent',
-          description:
-            'Estado del mensaje: accepted | queued | sending | sent | failed | delivered | read',
-        },
-      },
-    },
-  })
+  @ApiOperation({ summary: 'Obtener estado de mensaje' })
+  @ApiQuery({ name: 'message_id', type: 'string' })
   async getMessageStatus(@Query('message_id') messageId: string) {
     return this.whatsappService.getMessageStatus(messageId);
   }
 
-  /**
-   * Obtener números de teléfono disponibles
-   */
   @Get('phone-numbers')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @HttpCode(200)
-  @ApiOperation({
-    summary: 'Listar números de WhatsApp',
-    description:
-      'Obtiene todos los números de WhatsApp Business asociados a tu cuenta de Twilio. ' +
-      'Estos son los números desde los que puedes enviar mensajes.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de números obtenida',
+  @ApiOperation({ summary: 'Listar números de WhatsApp (Twilio)' })
+  async getPhoneNumbers() {
+    return this.whatsappService.getPhoneNumbers();
+  }
+
+  // --- Configuración de la integración por tenant ---
+
+  @Get('integration')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Obtener la configuración de WhatsApp del tenant (sin secretos)' })
+  async getIntegration(@Request() req) {
+    const integration = await this.integrationsService.getForCurrentTenant();
+    if (!integration) return null;
+    return {
+      provider: integration.provider,
+      twilio_account_sid: integration.twilio_account_sid,
+      twilio_whatsapp_number: integration.twilio_whatsapp_number,
+      cloud_phone_number_id: integration.cloud_phone_number_id,
+      cloud_waba_id: integration.cloud_waba_id,
+      cloud_template_language: integration.cloud_template_language,
+      verify_token: integration.verify_token,
+      is_active: integration.is_active,
+      has_twilio_auth_token: Boolean(integration.twilio_auth_token_encrypted),
+      has_cloud_access_token: Boolean(integration.cloud_access_token_encrypted),
+    };
+  }
+
+  @Patch('integration')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Guardar la configuración de WhatsApp del tenant' })
+  @ApiBody({
     schema: {
       type: 'object',
       properties: {
-        success: { type: 'boolean', example: true },
-        numbers: {
-          type: 'array',
-          items: { type: 'string' },
-          example: ['+14155238886', '+14155238887'],
-          description: 'Números de WhatsApp disponibles',
-        },
+        provider: { type: 'string', enum: ['twilio', 'cloud_api'] },
+        twilio_account_sid: { type: 'string' },
+        twilio_auth_token: { type: 'string' },
+        twilio_whatsapp_number: { type: 'string' },
+        cloud_access_token: { type: 'string' },
+        cloud_phone_number_id: { type: 'string' },
+        cloud_waba_id: { type: 'string' },
+        cloud_template_language: { type: 'string' },
       },
     },
   })
-  async getPhoneNumbers() {
-    return this.whatsappService.getPhoneNumbers();
+  async saveIntegration(@Request() req, @Body() body: any) {
+    const integration = await this.integrationsService.upsertForCurrentTenant(req.user.tenantId, body);
+    return {
+      provider: integration.provider,
+      verify_token: integration.verify_token,
+      is_active: integration.is_active,
+    };
   }
 }

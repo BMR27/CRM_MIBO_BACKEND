@@ -1,6 +1,7 @@
 import { Contact } from '../../contacts/entities/contact.entity';
 export declare class Order {
     id: string;
+    tenant_id: string;
     order_number: string;
     contact_id: string;
     status: string;

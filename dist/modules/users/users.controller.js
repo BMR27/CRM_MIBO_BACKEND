@@ -16,7 +16,6 @@ exports.UsersController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
-const roles_decorator_1 = require("../../decorators/roles.decorator");
 const users_service_1 = require("./users.service");
 class CreateUserDto {
 }
@@ -37,17 +36,36 @@ let UsersController = class UsersController {
     async getUserById(id) {
         return this.usersService.findById(id);
     }
-    async createUser(body) {
+    async createUser(req, body) {
+        // Nota: no se usa @Roles('admin') porque el RolesGuard global (APP_GUARD) se ejecuta
+        // antes que los guards de método como JwtAuthGuard, por lo que request.user aún no
+        // existiría cuando RolesGuard lo revisa. Se valida el rol a mano (ver AuthController.signup).
+        if (req.user.role !== 'admin') {
+            throw new common_1.ForbiddenException('Solo un administrador puede crear usuarios');
+        }
         return this.usersService.create(body);
     }
-    async updateUser(id, body) {
+    async updateUser(req, id, body) {
+        const isSelf = req.user.id === id;
+        const isManager = req.user.role === 'admin' || req.user.role === 'supervisor';
+        if (!isSelf && !isManager) {
+            throw new common_1.ForbiddenException('No tienes permiso para editar este usuario');
+        }
         return this.usersService.update(id, body);
     }
-    async updatePassword(id, body) {
+    async updatePassword(req, id, body) {
+        const isSelf = req.user.id === id;
+        const isAdmin = req.user.role === 'admin';
+        if (!isSelf && !isAdmin) {
+            throw new common_1.ForbiddenException('No tienes permiso para cambiar la contraseña de este usuario');
+        }
         await this.usersService.updatePassword(id, body.newPassword);
         return { message: 'Contraseña actualizada exitosamente' };
     }
-    async deleteUser(id) {
+    async deleteUser(req, id) {
+        if (req.user.role !== 'admin') {
+            throw new common_1.ForbiddenException('Solo un administrador puede eliminar usuarios');
+        }
         await this.usersService.delete(id);
     }
 };
@@ -167,7 +185,6 @@ __decorate([
     (0, common_1.Post)(),
     (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, roles_decorator_1.Roles)('admin'),
     (0, common_1.HttpCode)(201),
     (0, swagger_1.ApiOperation)({
         summary: 'Crear usuario',
@@ -197,16 +214,16 @@ __decorate([
         status: 403,
         description: 'Acceso denegado - solo admin',
     }),
-    __param(0, (0, common_1.Body)()),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [CreateUserDto]),
+    __metadata("design:paramtypes", [Object, CreateUserDto]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "createUser", null);
 __decorate([
     (0, common_1.Put)(':id'),
     (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, roles_decorator_1.Roles)('admin', 'supervisor'),
     (0, swagger_1.ApiOperation)({
         summary: 'Actualizar usuario',
         description: 'Actualiza los datos de un usuario existente.',
@@ -230,10 +247,11 @@ __decorate([
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Usuario actualizado' }),
     (0, swagger_1.ApiResponse)({ status: 404, description: 'Usuario no encontrado' }),
     (0, swagger_1.ApiResponse)({ status: 403, description: 'Acceso denegado' }),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Body)()),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, UpdateUserDto]),
+    __metadata("design:paramtypes", [Object, String, UpdateUserDto]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "updateUser", null);
 __decorate([
@@ -255,17 +273,17 @@ __decorate([
         },
     }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'Contraseña actualizada' }),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Body)()),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, UpdatePasswordDto]),
+    __metadata("design:paramtypes", [Object, String, UpdatePasswordDto]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "updatePassword", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, roles_decorator_1.Roles)('admin'),
     (0, common_1.HttpCode)(204),
     (0, swagger_1.ApiOperation)({
         summary: 'Eliminar usuario',
@@ -275,9 +293,10 @@ __decorate([
     (0, swagger_1.ApiResponse)({ status: 204, description: 'Usuario eliminado' }),
     (0, swagger_1.ApiResponse)({ status: 404, description: 'Usuario no encontrado' }),
     (0, swagger_1.ApiResponse)({ status: 403, description: 'Acceso denegado' }),
-    __param(0, (0, common_1.Param)('id')),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "deleteUser", null);
 exports.UsersController = UsersController = __decorate([

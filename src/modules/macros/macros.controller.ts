@@ -7,13 +7,17 @@
   Param,
   Delete,
   ValidationPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { MacrosService } from './macros.service';
 import { CreateMacroDto } from './dto/create-macro.dto';
 import { UpdateMacroDto } from './dto/update-macro.dto';
-import { ApiBody, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Macros - Respuestas rápidas')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('api/macros')
 export class MacrosController {
   constructor(private readonly macrosService: MacrosService) {}

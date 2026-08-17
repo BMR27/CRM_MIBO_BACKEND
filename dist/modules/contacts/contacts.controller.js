@@ -18,6 +18,7 @@ const contacts_service_1 = require("./contacts.service");
 const create_contact_dto_1 = require("./dto/create-contact.dto");
 const update_contact_dto_1 = require("./dto/update-contact.dto");
 const swagger_1 = require("@nestjs/swagger");
+const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 let ContactsController = class ContactsController {
     constructor(contactsService) {
         this.contactsService = contactsService;
@@ -102,6 +103,8 @@ __decorate([
 ], ContactsController.prototype, "remove", null);
 exports.ContactsController = ContactsController = __decorate([
     (0, swagger_1.ApiTags)('Contacts - Contactos'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('api/contacts'),
     __metadata("design:paramtypes", [contacts_service_1.ContactsService])
 ], ContactsController);

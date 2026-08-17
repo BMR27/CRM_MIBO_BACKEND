@@ -1,0 +1,2 @@
+export const VOICE_INTEGRATION_REPO = 'VOICE_INTEGRATION_REPO';
+export const CALL_REPO = 'CALL_REPO';

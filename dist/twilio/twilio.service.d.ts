@@ -1,8 +1,11 @@
+import { WhatsappIntegrationsService } from '../modules/whatsapp/whatsapp-integrations.service';
 export declare class TwilioService {
-    private client;
+    private whatsappIntegrationsService;
     private readonly allowedWATemplateName;
     private readonly allowedWATemplateSid;
-    constructor();
+    constructor(whatsappIntegrationsService: WhatsappIntegrationsService);
+    private getCredentials;
+    private getClient;
     /**
      * Lista plantillas aprobadas de WhatsApp en Twilio usando Content API vía HTTP
      */
@@ -33,5 +36,6 @@ export declare class TwilioService {
         contentType: string;
         contentDisposition: string;
     }>;
+    getDefaultWhatsappFrom(): Promise<string | undefined>;
 }
 //# sourceMappingURL=twilio.service.d.ts.map

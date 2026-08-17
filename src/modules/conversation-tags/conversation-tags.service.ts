@@ -1,18 +1,19 @@
-﻿import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConversationTag } from './entities/conversation-tag.entity';
 import { CreateConversationTagDto } from './dto/create-conversation-tag.dto';
+import { TenantScopedRepository } from '../../common/tenant/tenant-scoped.repository';
+import { CONVERSATION_TAG_REPO } from './conversation-tags.tokens';
 
 @Injectable()
 export class ConversationTagsService {
   constructor(
-    @InjectRepository(ConversationTag)
-    private tagRepository: Repository<ConversationTag>,
+    @Inject(CONVERSATION_TAG_REPO)
+    private tagRepository: TenantScopedRepository<ConversationTag>,
   ) {}
 
   async create(createTagDto: CreateConversationTagDto) {
-    return this.tagRepository.save(createTagDto);
+    const tag = this.tagRepository.create(createTagDto as any);
+    return this.tagRepository.save(tag);
   }
 
   async findAll() {
@@ -36,6 +37,6 @@ export class ConversationTagsService {
   }
 
   async removeByConversation(conversationId: string) {
-    await this.tagRepository.delete({ conversation_id: conversationId });
+    await this.tagRepository.deleteBy({ conversation_id: conversationId } as any);
   }
 }

@@ -1,23 +1,24 @@
-import { ConfigService } from '@nestjs/config';
 import { ContactsService } from '../contacts/contacts.service';
 import { ConversationsService } from '../conversations/conversations.service';
 import { MessagesService } from '../messages/messages.service';
 import { Readable } from 'stream';
+import { WhatsappIntegrationsService } from './whatsapp-integrations.service';
 export declare class WhatsappService {
-    private configService;
+    private integrationsService;
     private contactsService;
     private conversationsService;
     private messagesService;
     private readonly logger;
-    private readonly twilioClient;
-    private readonly twilioPhoneNumber;
-    private readonly webhookToken;
-    private readonly cloudAccessToken;
-    private readonly cloudPhoneNumberId;
-    private readonly cloudWabaId;
-    private readonly cloudTemplateLanguage;
-    constructor(configService: ConfigService, contactsService: ContactsService, conversationsService: ConversationsService, messagesService: MessagesService);
-    validateWebhookToken(token: string): boolean;
+    constructor(integrationsService: WhatsappIntegrationsService, contactsService: ContactsService, conversationsService: ConversationsService, messagesService: MessagesService);
+    /** Config del tenant actual (resuelto vía TenantContext). Lanza si no está configurado. */
+    private getConfig;
+    private buildTwilioClient;
+    /**
+     * Resuelve a qué tenant pertenece un webhook entrante, SIN tener todavía un TenantContext
+     * activo (lo llama el controller antes de envolver el procesamiento en TenantContext.run()).
+     */
+    resolveTenantForWebhook(body: any): Promise<string | null>;
+    resolveTenantForVerifyToken(token: string): Promise<string | null>;
     handleWebhook(body: any): Promise<void>;
     handleCloudWebhook(body: any): Promise<void>;
     private processIncomingMessage;
@@ -60,7 +61,6 @@ export declare class WhatsappService {
         hint?: string;
     }>;
     private normalizeTemplateVariables;
-    private sendCloudTextMessage;
     private sendCloudTemplateMessage;
     private uploadCloudMedia;
     private sendCloudMediaMessage;

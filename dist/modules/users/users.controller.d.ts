@@ -20,12 +20,12 @@ export declare class UsersController {
     getUsers(): Promise<import("./entities/user.entity").User[]>;
     getAgents(): Promise<any[]>;
     getUserById(id: string): Promise<import("./entities/user.entity").User>;
-    createUser(body: CreateUserDto): Promise<import("./entities/user.entity").User>;
-    updateUser(id: string, body: UpdateUserDto): Promise<import("./entities/user.entity").User>;
-    updatePassword(id: string, body: UpdatePasswordDto): Promise<{
+    createUser(req: any, body: CreateUserDto): Promise<import("./entities/user.entity").User>;
+    updateUser(req: any, id: string, body: UpdateUserDto): Promise<import("./entities/user.entity").User>;
+    updatePassword(req: any, id: string, body: UpdatePasswordDto): Promise<{
         message: string;
     }>;
-    deleteUser(id: string): Promise<void>;
+    deleteUser(req: any, id: string): Promise<void>;
 }
 export {};
 //# sourceMappingURL=users.controller.d.ts.map

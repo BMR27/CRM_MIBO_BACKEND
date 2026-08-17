@@ -22,6 +22,9 @@ export class Conversation {
   id: string;
 
   @Column({ type: 'uuid' })
+  tenant_id: string;
+
+  @Column({ type: 'uuid' })
   contact_id: string;
 
   @Column({ type: 'uuid', nullable: true })

@@ -14,15 +14,15 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MacrosService = void 0;
 const common_1 = require("@nestjs/common");
-const typeorm_1 = require("@nestjs/typeorm");
-const typeorm_2 = require("typeorm");
-const macro_entity_1 = require("./entities/macro.entity");
+const tenant_scoped_repository_1 = require("../../common/tenant/tenant-scoped.repository");
+const macros_tokens_1 = require("./macros.tokens");
 let MacrosService = class MacrosService {
     constructor(macroRepository) {
         this.macroRepository = macroRepository;
     }
     async create(createMacroDto) {
-        return this.macroRepository.save(createMacroDto);
+        const macro = this.macroRepository.create(createMacroDto);
+        return this.macroRepository.save(macro);
     }
     async findAll() {
         return this.macroRepository.find({
@@ -51,7 +51,7 @@ let MacrosService = class MacrosService {
         return this.findOne(id);
     }
     async incrementUsage(id) {
-        await this.macroRepository.increment({ id }, 'usage_count', 1);
+        await this.macroRepository.increment(id, 'usage_count', 1);
     }
     async remove(id) {
         await this.macroRepository.delete(id);
@@ -60,7 +60,7 @@ let MacrosService = class MacrosService {
 exports.MacrosService = MacrosService;
 exports.MacrosService = MacrosService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, typeorm_1.InjectRepository)(macro_entity_1.Macro)),
-    __metadata("design:paramtypes", [typeorm_2.Repository])
+    __param(0, (0, common_1.Inject)(macros_tokens_1.MACRO_REPO)),
+    __metadata("design:paramtypes", [tenant_scoped_repository_1.TenantScopedRepository])
 ], MacrosService);
 //# sourceMappingURL=macros.service.js.map

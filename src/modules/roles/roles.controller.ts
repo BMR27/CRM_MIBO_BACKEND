@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, HttpCode, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiParam } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesService } from './roles.service';
@@ -39,8 +39,8 @@ export class RolesController {
       },
     },
   })
-  async getRoles() {
-    return this.rolesService.findAll();
+  async getRoles(@Request() req) {
+    return this.rolesService.findAll(req.user.tenantId);
   }
 
   @Get(':id')
@@ -130,8 +130,8 @@ export class RolesController {
     description:
       'Crea los roles iniciales: Administrador, Agente, Supervisor y Usuario. Solo si no existen roles.',
   })
-  async seedRoles() {
-    await this.rolesService.seedDefaultRoles();
+  async seedRoles(@Request() req) {
+    await this.rolesService.seedDefaultRolesForTenant(req.user.tenantId);
     return { success: true, message: 'Roles por defecto creados' };
   }
 }

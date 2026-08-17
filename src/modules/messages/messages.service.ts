@@ -1,21 +1,21 @@
-﻿import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Inject, Injectable } from '@nestjs/common';
 import { Message } from './entities/message.entity';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
+import { TenantScopedRepository } from '../../common/tenant/tenant-scoped.repository';
+import { MESSAGE_REPO } from './messages.tokens';
 
 @Injectable()
 export class MessagesService {
   constructor(
-    @InjectRepository(Message)
-    private messageRepository: Repository<Message>,
+    @Inject(MESSAGE_REPO)
+    private messageRepository: TenantScopedRepository<Message>,
   ) {}
 
   async createIfNotExists(createMessageDto: CreateMessageDto) {
     if (createMessageDto.whatsapp_message_id) {
       const existing = await this.messageRepository.findOne({
-        where: { whatsapp_message_id: createMessageDto.whatsapp_message_id }
+        where: { whatsapp_message_id: createMessageDto.whatsapp_message_id },
       });
       if (existing) return existing;
     }
@@ -59,7 +59,7 @@ export class MessagesService {
     const messages = await this.messageRepository.find({
       relations: ['conversation', 'sender'],
     });
-    return messages.map(m => this.attachMediaProxyUrl(m));
+    return messages.map((m) => this.attachMediaProxyUrl(m));
   }
 
   async findOne(id: string) {
@@ -76,12 +76,11 @@ export class MessagesService {
       relations: ['sender'],
       order: { created_at: 'ASC' },
     });
-    return messages.map(m => this.attachMediaProxyUrl(m));
+    return messages.map((m) => this.attachMediaProxyUrl(m));
   }
 
   async update(id: string, updateMessageDto: UpdateMessageDto) {
-    const updateData = this.messageRepository.create(updateMessageDto as any);
-    await this.messageRepository.update(id, updateData as any);
+    await this.messageRepository.update(id, updateMessageDto as any);
     const message = await this.findOne(id);
     return this.attachMediaProxyUrl(message as any);
   }

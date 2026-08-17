@@ -2,7 +2,7 @@ import { RolesService } from './roles.service';
 export declare class RolesController {
     private rolesService;
     constructor(rolesService: RolesService);
-    getRoles(): Promise<import("./entities/role.entity").Role[]>;
+    getRoles(req: any): Promise<import("./entities/role.entity").Role[]>;
     getRoleById(id: string): Promise<import("./entities/role.entity").Role>;
     createRole(body: any): Promise<import("./entities/role.entity").Role>;
     updateRole(id: string, body: any): Promise<import("./entities/role.entity").Role>;
@@ -10,7 +10,7 @@ export declare class RolesController {
         success: boolean;
         message: string;
     }>;
-    seedRoles(): Promise<{
+    seedRoles(req: any): Promise<{
         success: boolean;
         message: string;
     }>;

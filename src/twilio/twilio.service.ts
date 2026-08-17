@@ -1,35 +1,46 @@
-
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { Twilio } from 'twilio';
 import axios from 'axios';
+import { TenantContext } from '../common/tenant/tenant-context';
+import { WhatsappIntegrationsService } from '../modules/whatsapp/whatsapp-integrations.service';
 
 @Injectable()
 export class TwilioService {
-  private client: Twilio;
   private readonly allowedWATemplateName = 'customer_service_intro_v1';
   private readonly allowedWATemplateSid = 'HXf9420e6e4ff17a94fe3dfaceb7aa657b';
 
-  constructor() {
-    this.client = new Twilio(
-      process.env.TWILIO_ACCOUNT_SID!,
-      process.env.TWILIO_AUTH_TOKEN!
-    );
+  constructor(private whatsappIntegrationsService: WhatsappIntegrationsService) {}
+
+  private async getCredentials(): Promise<{ accountSid: string; authToken: string; whatsappFrom?: string }> {
+    const tenantId = TenantContext.getTenantId();
+    const config = await this.whatsappIntegrationsService.getConfigForTenant(tenantId);
+    if (!config?.twilioAccountSid || !config?.twilioAuthToken) {
+      throw new BadRequestException('Twilio no está configurado para este espacio de trabajo');
+    }
+    return {
+      accountSid: config.twilioAccountSid,
+      authToken: config.twilioAuthToken,
+      whatsappFrom: config.twilioWhatsappNumber,
+    };
+  }
+
+  private async getClient(): Promise<Twilio> {
+    const { accountSid, authToken } = await this.getCredentials();
+    return new Twilio(accountSid, authToken);
   }
 
   /**
    * Lista plantillas aprobadas de WhatsApp en Twilio usando Content API vía HTTP
    */
   async listApprovedWATemplates(serviceSid?: string) {
-    const accountSid = process.env.TWILIO_ACCOUNT_SID!;
-    const authToken = process.env.TWILIO_AUTH_TOKEN!;
-    // Si se recibe serviceSid, úsalo en la URL (ajusta según tu cuenta Twilio)
+    const { accountSid, authToken } = await this.getCredentials();
     let url = `https://content.twilio.com/v1/WhatsApp/Templates?Status=approved`;
     if (serviceSid) {
       url = `https://content.twilio.com/v1/Services/${serviceSid}/Templates?Status=approved`;
     }
     try {
       const response = await axios.get(url, {
-        auth: { username: accountSid, password: authToken }
+        auth: { username: accountSid, password: authToken },
       });
       const templates = response.data.templates || [];
       return templates.filter((template: any) => {
@@ -54,7 +65,7 @@ export class TwilioService {
     contentSid: string;
     variables?: string[];
   }) {
-    // Mapear variables a formato {"1": "valor1", "2": "valor2", ...}
+    const client = await this.getClient();
     let contentVariables = {} as Record<string, string>;
     if (Array.isArray(variables)) {
       variables.forEach((val, idx) => {
@@ -65,12 +76,9 @@ export class TwilioService {
       to: to.startsWith('whatsapp:') ? to : `whatsapp:${to}`,
       from: from.startsWith('whatsapp:') ? from : `whatsapp:${from}`,
       contentSid: contentSid,
-      contentVariables: JSON.stringify(contentVariables), // Debe ser string para el SDK
+      contentVariables: JSON.stringify(contentVariables),
     };
-    // Log para depuración
-    // eslint-disable-next-line no-console
-    console.log('Twilio sendWhatsAppTemplate payload:', payload);
-    return this.client.messages.create(payload);
+    return client.messages.create(payload);
   }
 
   /**
@@ -87,9 +95,7 @@ export class TwilioService {
     contentSid: string;
     variables?: string[];
   }) {
-    const accountSid = process.env.TWILIO_ACCOUNT_SID!;
-    const authToken = process.env.TWILIO_AUTH_TOKEN!;
-    // Construir ContentVariables: {"1":"valor1", ...}
+    const { accountSid, authToken } = await this.getCredentials();
     const contentVariables: Record<string, string> = {};
     if (Array.isArray(variables)) {
       variables.forEach((val, idx) => {
@@ -99,7 +105,7 @@ export class TwilioService {
     const data = new URLSearchParams();
     data.append('To', to.startsWith('whatsapp:') ? to : `whatsapp:${to}`);
     data.append('From', from.startsWith('whatsapp:') ? from : `whatsapp:${from}`);
-    data.append('ContentSid', contentSid); // Respetar mayúsculas
+    data.append('ContentSid', contentSid);
     data.append('ContentVariables', JSON.stringify(contentVariables));
 
     const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
@@ -121,23 +127,21 @@ export class TwilioService {
     mediaUrl: string;
     body?: string;
   }) {
+    const client = await this.getClient();
     const payload = {
       to: to.startsWith('whatsapp:') ? to : `whatsapp:${to}`,
       from: from.startsWith('whatsapp:') ? from : `whatsapp:${from}`,
       mediaUrl: [mediaUrl],
       ...(body && body.trim() ? { body: body.trim() } : {}),
     };
-
-    // eslint-disable-next-line no-console
-    console.log('Twilio sendWhatsAppMedia payload:', payload);
-    return this.client.messages.create(payload);
+    return client.messages.create(payload);
   }
 
   async downloadFirstMediaByMessageSid(messageSid: string) {
-    const accountSid = process.env.TWILIO_ACCOUNT_SID!;
-    const authToken = process.env.TWILIO_AUTH_TOKEN!;
+    const { accountSid, authToken } = await this.getCredentials();
+    const client = new Twilio(accountSid, authToken);
 
-    const mediaList = await this.client.messages(messageSid).media.list({ limit: 1 });
+    const mediaList = await client.messages(messageSid).media.list({ limit: 1 });
     if (!mediaList || mediaList.length === 0) {
       throw new Error('No media found for this message');
     }
@@ -163,5 +167,10 @@ export class TwilioService {
       contentType,
       contentDisposition,
     };
+  }
+
+  async getDefaultWhatsappFrom(): Promise<string | undefined> {
+    const { whatsappFrom } = await this.getCredentials();
+    return whatsappFrom ? `whatsapp:${whatsappFrom}` : undefined;
   }
 }

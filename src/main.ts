@@ -91,10 +91,10 @@ async function bootstrap() {
       console.log('Swagger docs disabled in production. Set ENABLE_SWAGGER=true to enable internal docs.');
     }
 
-    // Seed default roles if not exist
+    // Seed default roles for the "default" tenant (donde viven los usuarios/datos preexistentes)
     try {
       const rolesService = app.get(RolesService);
-      await rolesService.seedDefaultRoles();
+      await rolesService.seedDefaultRolesForTenant('00000000-0000-0000-0000-000000000001');
       console.log('✓ Roles por defecto verificados/creados');
     } catch (error) {
       console.error('Error seeding roles:', error);

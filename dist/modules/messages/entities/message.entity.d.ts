@@ -2,6 +2,7 @@ import { Conversation } from '../../conversations/entities/conversation.entity';
 import { User } from '../../users/entities/user.entity';
 export declare class Message {
     id: string;
+    tenant_id: string;
     conversation_id: string;
     sender_type: 'user' | 'contact' | 'agent';
     sender_id: string;

@@ -100,7 +100,10 @@ let MessagesBulkController = class MessagesBulkController {
         const campaignId = String(body.campaignId || `bulk_${Date.now()}`);
         const campaignName = String(body.campaignName || 'Campaña').trim() || 'Campaña';
         const campaignCode = String(body.campaignCode || campaignId).trim() || campaignId;
-        const from = process.env.TWILIO_WHATSAPP_FROM;
+        const from = await this.twilioService.getDefaultWhatsappFrom();
+        if (!from) {
+            return { error: 'WhatsApp (Twilio) no está configurado para este espacio de trabajo' };
+        }
         const results = [];
         for (const row of data) {
             try {

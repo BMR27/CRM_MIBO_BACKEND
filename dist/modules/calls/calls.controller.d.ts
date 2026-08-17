@@ -1,6 +1,9 @@
+import { VoiceService } from '../voice/voice.service';
 export declare class CallsController {
-    getCalls(conversationId: string): Promise<{
-        calls: any[];
+    private voiceService;
+    constructor(voiceService: VoiceService);
+    getCalls(conversationId?: string): Promise<{
+        calls: import("../voice/entities/call.entity").Call[];
     }>;
 }
 //# sourceMappingURL=calls.controller.d.ts.map

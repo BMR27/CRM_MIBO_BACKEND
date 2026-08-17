@@ -1,16 +1,16 @@
-﻿import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Conversation } from './entities/conversation.entity';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { MessagesService } from '../messages/messages.service';
+import { TenantScopedRepository } from '../../common/tenant/tenant-scoped.repository';
+import { CONVERSATION_REPO } from './conversations.tokens';
 
 @Injectable()
 export class ConversationsService {
   constructor(
-    @InjectRepository(Conversation)
-    private conversationRepository: Repository<Conversation>,
+    @Inject(CONVERSATION_REPO)
+    private conversationRepository: TenantScopedRepository<Conversation>,
     private messagesService: MessagesService,
   ) {}
 
@@ -54,7 +54,7 @@ export class ConversationsService {
       relations: ['contact', 'assigned_agent', 'messages'],
     });
     if (!conversation) {
-      throw new (require('@nestjs/common').NotFoundException)('Conversation not found');
+      throw new NotFoundException('Conversation not found');
     }
     // Mapeo explícito para frontend
     return {
@@ -76,13 +76,20 @@ export class ConversationsService {
     });
   }
 
+  async findByExternalUserId(channel: string, externalUserId: string) {
+    return this.conversationRepository.find({
+      where: { channel, external_user_id: externalUserId } as any,
+      relations: ['assigned_agent', 'contact'],
+    });
+  }
+
   async findByAssignedAgent(agentId: string) {
     // Mostrar conversaciones asignadas al agente o sin asignación
     return this.conversationRepository.find({
       where: [
         { assigned_agent_id: agentId },
         { assigned_agent_id: null },
-      ],
+      ] as any,
       relations: ['contact', 'assigned_agent', 'messages'],
       order: { last_message_at: 'DESC' },
     });
@@ -91,13 +98,12 @@ export class ConversationsService {
   async assignAgent(conversationId: string, agentId: string) {
     await this.conversationRepository.update(conversationId, {
       assigned_agent_id: agentId,
-    });
+    } as any);
     return this.findOne(conversationId);
   }
 
   async update(id: string, updateConversationDto: UpdateConversationDto) {
-    const updateData = this.conversationRepository.create(updateConversationDto as any);
-    await this.conversationRepository.update(id, updateData as any);
+    await this.conversationRepository.update(id, updateConversationDto as any);
     return this.findOne(id);
   }
 

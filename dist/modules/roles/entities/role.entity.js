@@ -20,7 +20,11 @@ __decorate([
     __metadata("design:type", String)
 ], Role.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'varchar', length: 100, unique: true }),
+    (0, typeorm_1.Column)({ type: 'uuid' }),
+    __metadata("design:type", String)
+], Role.prototype, "tenant_id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 100 }),
     __metadata("design:type", String)
 ], Role.prototype, "name", void 0);
 __decorate([

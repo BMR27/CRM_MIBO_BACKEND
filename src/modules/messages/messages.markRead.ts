@@ -1,19 +1,19 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Inject, Injectable } from '@nestjs/common';
 import { Message } from './entities/message.entity';
+import { TenantScopedRepository } from '../../common/tenant/tenant-scoped.repository';
+import { MESSAGE_REPO } from './messages.tokens';
 
 @Injectable()
 export class MessagesMarkReadService {
   constructor(
-    @InjectRepository(Message)
-    private messageRepository: Repository<Message>,
+    @Inject(MESSAGE_REPO)
+    private messageRepository: TenantScopedRepository<Message>,
   ) {}
 
   async markConversationMessagesAsRead(conversationId: string) {
-    await this.messageRepository.update(
-      { conversation_id: conversationId, is_read: false },
-      { is_read: true, read_at: new Date() }
+    await this.messageRepository.updateBy(
+      { conversation_id: conversationId, is_read: false } as any,
+      { is_read: true, read_at: new Date() } as any,
     );
     return { success: true };
   }

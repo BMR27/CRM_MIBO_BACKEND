@@ -1,15 +1,20 @@
-import { Controller, Get, Query } from '@nestjs/common';
-import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { VoiceService } from '../voice/voice.service';
 
 @ApiTags('Calls - Llamadas')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('calls')
 export class CallsController {
+  constructor(private voiceService: VoiceService) {}
+
   @Get()
-  @ApiOperation({ summary: 'Listar llamadas', description: 'Devuelve llamadas asociadas a una conversación cuando se envía conversation_id.' })
-  @ApiQuery({ name: 'conversation_id', required: false, description: 'ID de la conversación' })
-  async getCalls(@Query('conversation_id') conversationId: string) {
-    // Aquí deberías consultar la base de datos por las llamadas asociadas
-    // Por ahora, devuelve un array vacío para evitar el error 404
-    return { calls: [] };
+  @ApiOperation({ summary: 'Listar llamadas', description: 'Devuelve llamadas del tenant, opcionalmente filtradas por conversation_id.' })
+  @ApiQuery({ name: 'conversation_id', required: false })
+  async getCalls(@Query('conversation_id') conversationId?: string) {
+    const calls = await this.voiceService.findAll(conversationId);
+    return { calls };
   }
 }

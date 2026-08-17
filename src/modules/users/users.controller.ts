@@ -6,8 +6,10 @@
   Delete,
   Body,
   Param,
+  Request,
   UseGuards,
   HttpCode,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,7 +20,6 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { Roles } from '../../decorators/roles.decorator';
 import { UsersService } from './users.service';
 
 class CreateUserDto {
@@ -155,7 +156,6 @@ export class UsersController {
   @Post()
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @Roles('admin')
   @HttpCode(201)
   @ApiOperation({
     summary: 'Crear usuario',
@@ -185,14 +185,19 @@ export class UsersController {
     status: 403,
     description: 'Acceso denegado - solo admin',
   })
-  async createUser(@Body() body: CreateUserDto) {
+  async createUser(@Request() req, @Body() body: CreateUserDto) {
+    // Nota: no se usa @Roles('admin') porque el RolesGuard global (APP_GUARD) se ejecuta
+    // antes que los guards de método como JwtAuthGuard, por lo que request.user aún no
+    // existiría cuando RolesGuard lo revisa. Se valida el rol a mano (ver AuthController.signup).
+    if (req.user.role !== 'admin') {
+      throw new ForbiddenException('Solo un administrador puede crear usuarios');
+    }
     return this.usersService.create(body);
   }
 
   @Put(':id')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @Roles('admin', 'supervisor')
   @ApiOperation({
     summary: 'Actualizar usuario',
     description: 'Actualiza los datos de un usuario existente.',
@@ -216,7 +221,12 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Usuario actualizado' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
   @ApiResponse({ status: 403, description: 'Acceso denegado' })
-  async updateUser(@Param('id') id: string, @Body() body: UpdateUserDto) {
+  async updateUser(@Request() req, @Param('id') id: string, @Body() body: UpdateUserDto) {
+    const isSelf = req.user.id === id;
+    const isManager = req.user.role === 'admin' || req.user.role === 'supervisor';
+    if (!isSelf && !isManager) {
+      throw new ForbiddenException('No tienes permiso para editar este usuario');
+    }
     return this.usersService.update(id, body);
   }
 
@@ -239,9 +249,15 @@ export class UsersController {
   })
   @ApiResponse({ status: 200, description: 'Contraseña actualizada' })
   async updatePassword(
+    @Request() req,
     @Param('id') id: string,
     @Body() body: UpdatePasswordDto,
   ) {
+    const isSelf = req.user.id === id;
+    const isAdmin = req.user.role === 'admin';
+    if (!isSelf && !isAdmin) {
+      throw new ForbiddenException('No tienes permiso para cambiar la contraseña de este usuario');
+    }
     await this.usersService.updatePassword(id, body.newPassword);
     return { message: 'Contraseña actualizada exitosamente' };
   }
@@ -249,7 +265,6 @@ export class UsersController {
   @Delete(':id')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @Roles('admin')
   @HttpCode(204)
   @ApiOperation({
     summary: 'Eliminar usuario',
@@ -259,7 +274,10 @@ export class UsersController {
   @ApiResponse({ status: 204, description: 'Usuario eliminado' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
   @ApiResponse({ status: 403, description: 'Acceso denegado' })
-  async deleteUser(@Param('id') id: string) {
+  async deleteUser(@Request() req, @Param('id') id: string) {
+    if (req.user.role !== 'admin') {
+      throw new ForbiddenException('Solo un administrador puede eliminar usuarios');
+    }
     await this.usersService.delete(id);
   }
 }

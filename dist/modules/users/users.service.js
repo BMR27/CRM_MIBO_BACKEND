@@ -65,6 +65,7 @@ let UsersService = class UsersService {
             password_hash: hashedPassword,
             name: createUserDto.full_name,
             role_id: createUserDto.role_id,
+            tenant_id: createUserDto.tenant_id,
             status: 'offline',
         });
         return await this.usersRepository.save(user);

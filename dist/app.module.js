@@ -12,9 +12,11 @@ const config_1 = require("@nestjs/config");
 const typeorm_1 = require("@nestjs/typeorm");
 const core_1 = require("@nestjs/core");
 const roles_guard_1 = require("./guards/roles.guard");
+const tenant_interceptor_1 = require("./common/tenant/tenant.interceptor");
 const auth_module_1 = require("./modules/auth/auth.module");
 const users_module_1 = require("./modules/users/users.module");
 const roles_module_1 = require("./modules/roles/roles.module");
+const tenants_module_1 = require("./modules/tenants/tenants.module");
 const contacts_module_1 = require("./modules/contacts/contacts.module");
 const conversations_module_1 = require("./modules/conversations/conversations.module");
 const messages_module_1 = require("./modules/messages/messages.module");
@@ -24,6 +26,10 @@ const conversation_tags_module_1 = require("./modules/conversation-tags/conversa
 const whatsapp_module_1 = require("./modules/whatsapp/whatsapp.module");
 const twilio_module_1 = require("./twilio/twilio.module");
 const calls_module_1 = require("./modules/calls/calls.module");
+const leads_module_1 = require("./modules/leads/leads.module");
+const api_keys_module_1 = require("./modules/api-keys/api-keys.module");
+const facebook_module_1 = require("./modules/facebook/facebook.module");
+const voice_module_1 = require("./modules/voice/voice.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -79,6 +85,7 @@ exports.AppModule = AppModule = __decorate([
             auth_module_1.AuthModule,
             roles_module_1.RolesModule,
             users_module_1.UsersModule,
+            tenants_module_1.TenantsModule,
             contacts_module_1.ContactsModule,
             conversations_module_1.ConversationsModule,
             messages_module_1.MessagesModule,
@@ -88,12 +95,20 @@ exports.AppModule = AppModule = __decorate([
             whatsapp_module_1.WhatsappModule,
             twilio_module_1.TwilioModule,
             calls_module_1.CallsModule,
+            leads_module_1.LeadsModule,
+            api_keys_module_1.ApiKeysModule,
+            facebook_module_1.FacebookModule,
+            voice_module_1.VoiceModule,
         ],
         controllers: [],
         providers: [
             {
                 provide: core_1.APP_GUARD,
                 useClass: roles_guard_1.RolesGuard,
+            },
+            {
+                provide: core_1.APP_INTERCEPTOR,
+                useClass: tenant_interceptor_1.TenantInterceptor,
             },
         ],
     })

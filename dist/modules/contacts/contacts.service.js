@@ -16,9 +16,8 @@ exports.ContactsService = void 0;
 // Importar la función global de normalización
 const phone_1 = require("../../lib/phone");
 const common_1 = require("@nestjs/common");
-const typeorm_1 = require("@nestjs/typeorm");
-const typeorm_2 = require("typeorm");
-const contact_entity_1 = require("./entities/contact.entity");
+const tenant_scoped_repository_1 = require("../../common/tenant/tenant-scoped.repository");
+const contacts_tokens_1 = require("./contacts.tokens");
 let ContactsService = class ContactsService {
     constructor(contactRepository) {
         this.contactRepository = contactRepository;
@@ -81,7 +80,7 @@ let ContactsService = class ContactsService {
 exports.ContactsService = ContactsService;
 exports.ContactsService = ContactsService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, typeorm_1.InjectRepository)(contact_entity_1.Contact)),
-    __metadata("design:paramtypes", [typeorm_2.Repository])
+    __param(0, (0, common_1.Inject)(contacts_tokens_1.CONTACT_REPO)),
+    __metadata("design:paramtypes", [tenant_scoped_repository_1.TenantScopedRepository])
 ], ContactsService);
 //# sourceMappingURL=contacts.service.js.map

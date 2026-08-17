@@ -1,11 +1,13 @@
 ﻿import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { APP_GUARD } from '@nestjs/core'
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 import { RolesGuard } from './guards/roles.guard'
+import { TenantInterceptor } from './common/tenant/tenant.interceptor'
 import { AuthModule } from './modules/auth/auth.module'
 import { UsersModule } from './modules/users/users.module'
 import { RolesModule } from './modules/roles/roles.module'
+import { TenantsModule } from './modules/tenants/tenants.module'
 import { ContactsModule } from './modules/contacts/contacts.module'
 import { ConversationsModule } from './modules/conversations/conversations.module'
 import { MessagesModule } from './modules/messages/messages.module'
@@ -15,6 +17,10 @@ import { ConversationTagsModule } from './modules/conversation-tags/conversation
 import { WhatsappModule } from './modules/whatsapp/whatsapp.module'
 import { TwilioModule } from './twilio/twilio.module'
 import { CallsModule } from './modules/calls/calls.module'
+import { LeadsModule } from './modules/leads/leads.module'
+import { ApiKeysModule } from './modules/api-keys/api-keys.module'
+import { FacebookModule } from './modules/facebook/facebook.module'
+import { VoiceModule } from './modules/voice/voice.module'
 
 @Module({
   imports: [
@@ -74,6 +80,7 @@ import { CallsModule } from './modules/calls/calls.module'
     AuthModule,
     RolesModule,
     UsersModule,
+    TenantsModule,
     ContactsModule,
     ConversationsModule,
     MessagesModule,
@@ -83,12 +90,20 @@ import { CallsModule } from './modules/calls/calls.module'
     WhatsappModule,
     TwilioModule,
     CallsModule,
+    LeadsModule,
+    ApiKeysModule,
+    FacebookModule,
+    VoiceModule,
   ],
   controllers: [],
   providers: [
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TenantInterceptor,
     },
   ],
 })

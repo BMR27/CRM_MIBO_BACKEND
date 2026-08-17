@@ -21,17 +21,17 @@ let RolesService = class RolesService {
     constructor(rolesRepository) {
         this.rolesRepository = rolesRepository;
     }
-    async findAll() {
+    async findAll(tenantId) {
         return this.rolesRepository.find({
-            where: { is_active: true },
+            where: { tenant_id: tenantId, is_active: true },
             order: { name: 'ASC' },
         });
     }
     async findById(id) {
         return this.rolesRepository.findOne({ where: { id } });
     }
-    async findByName(name) {
-        return this.rolesRepository.findOne({ where: { name } });
+    async findByNameForTenant(tenantId, name) {
+        return this.rolesRepository.findOne({ where: { tenant_id: tenantId, name } });
     }
     async create(data) {
         const role = this.rolesRepository.create(data);
@@ -44,11 +44,8 @@ let RolesService = class RolesService {
     async delete(id) {
         await this.rolesRepository.update(id, { is_active: false });
     }
-    async seedDefaultRoles() {
-        const existingRoles = await this.rolesRepository.count();
-        if (existingRoles > 0)
-            return;
-        const defaultRoles = [
+    defaultRolesTemplate() {
+        return [
             {
                 name: 'Administrador',
                 description: 'Acceso completo al sistema',
@@ -106,8 +103,19 @@ let RolesService = class RolesService {
                 },
             },
         ];
-        for (const roleData of defaultRoles) {
-            await this.create(roleData);
+    }
+    /**
+     * Siembra los 4 roles por defecto para un tenant específico.
+     * Si se pasa un `manager` (ej. dentro de una transacción de signup-company), lo usa en vez del repo propio.
+     */
+    async seedDefaultRolesForTenant(tenantId, manager) {
+        const repo = manager ? manager.getRepository(role_entity_1.Role) : this.rolesRepository;
+        const existingRoles = await repo.count({ where: { tenant_id: tenantId } });
+        if (existingRoles > 0)
+            return;
+        for (const roleData of this.defaultRolesTemplate()) {
+            const role = repo.create({ ...roleData, tenant_id: tenantId });
+            await repo.save(role);
         }
     }
 };

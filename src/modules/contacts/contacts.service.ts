@@ -1,17 +1,17 @@
 // Importar la función global de normalización
 import { normalizePhoneNumber } from '../../lib/phone';
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Inject, Injectable } from '@nestjs/common';
 import { Contact } from './entities/contact.entity';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
+import { TenantScopedRepository } from '../../common/tenant/tenant-scoped.repository';
+import { CONTACT_REPO } from './contacts.tokens';
 
 @Injectable()
 export class ContactsService {
   constructor(
-    @InjectRepository(Contact)
-    private contactRepository: Repository<Contact>,
+    @Inject(CONTACT_REPO)
+    private contactRepository: TenantScopedRepository<Contact>,
   ) {}
 
   async create(createContactDto: CreateContactDto) {

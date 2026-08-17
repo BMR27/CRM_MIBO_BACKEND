@@ -1,0 +1,10 @@
+import { TenantsService } from './tenants.service';
+export declare class TenantsController {
+    private tenantsService;
+    constructor(tenantsService: TenantsService);
+    getMe(req: any): Promise<import("./entities/tenant.entity").Tenant>;
+    updateMe(req: any, body: {
+        name: string;
+    }): Promise<import("./entities/tenant.entity").Tenant>;
+}
+//# sourceMappingURL=tenants.controller.d.ts.map

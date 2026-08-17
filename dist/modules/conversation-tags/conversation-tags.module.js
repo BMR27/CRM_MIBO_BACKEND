@@ -12,13 +12,18 @@ const typeorm_1 = require("@nestjs/typeorm");
 const conversation_tag_entity_1 = require("./entities/conversation-tag.entity");
 const conversation_tags_service_1 = require("./conversation-tags.service");
 const conversation_tags_controller_1 = require("./conversation-tags.controller");
+const conversation_tags_tokens_1 = require("./conversation-tags.tokens");
+const tenant_scoped_repository_provider_1 = require("../../common/tenant/tenant-scoped-repository.provider");
 let ConversationTagsModule = class ConversationTagsModule {
 };
 exports.ConversationTagsModule = ConversationTagsModule;
 exports.ConversationTagsModule = ConversationTagsModule = __decorate([
     (0, common_1.Module)({
         imports: [typeorm_1.TypeOrmModule.forFeature([conversation_tag_entity_1.ConversationTag])],
-        providers: [conversation_tags_service_1.ConversationTagsService],
+        providers: [
+            conversation_tags_service_1.ConversationTagsService,
+            (0, tenant_scoped_repository_provider_1.tenantScopedRepositoryProvider)(conversation_tags_tokens_1.CONVERSATION_TAG_REPO, conversation_tag_entity_1.ConversationTag),
+        ],
         controllers: [conversation_tags_controller_1.ConversationTagsController],
         exports: [conversation_tags_service_1.ConversationTagsService],
     })

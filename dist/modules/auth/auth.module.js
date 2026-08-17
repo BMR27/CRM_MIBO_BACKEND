@@ -13,8 +13,10 @@ const passport_1 = require("@nestjs/passport");
 const config_1 = require("@nestjs/config");
 const jwt_strategy_1 = require("./strategies/jwt.strategy");
 const auth_controller_1 = require("./auth.controller");
+const auth_service_1 = require("./auth.service");
 const users_module_1 = require("../users/users.module");
 const roles_module_1 = require("../roles/roles.module");
+const tenants_module_1 = require("../tenants/tenants.module");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
@@ -24,6 +26,7 @@ exports.AuthModule = AuthModule = __decorate([
             passport_1.PassportModule,
             users_module_1.UsersModule,
             roles_module_1.RolesModule,
+            tenants_module_1.TenantsModule,
             jwt_1.JwtModule.registerAsync({
                 useFactory: (configService) => ({
                     secret: configService.get('JWT_SECRET'),
@@ -32,9 +35,9 @@ exports.AuthModule = AuthModule = __decorate([
                 inject: [config_1.ConfigService],
             }),
         ],
-        providers: [jwt_strategy_1.JwtStrategy],
+        providers: [jwt_strategy_1.JwtStrategy, auth_service_1.AuthService],
         controllers: [auth_controller_1.AuthController],
-        exports: [jwt_1.JwtModule, passport_1.PassportModule],
+        exports: [jwt_1.JwtModule, passport_1.PassportModule, auth_service_1.AuthService],
     })
 ], AuthModule);
 //# sourceMappingURL=auth.module.js.map

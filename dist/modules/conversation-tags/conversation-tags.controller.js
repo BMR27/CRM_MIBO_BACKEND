@@ -17,6 +17,7 @@ const common_1 = require("@nestjs/common");
 const conversation_tags_service_1 = require("./conversation-tags.service");
 const create_conversation_tag_dto_1 = require("./dto/create-conversation-tag.dto");
 const swagger_1 = require("@nestjs/swagger");
+const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 let ConversationTagsController = class ConversationTagsController {
     constructor(conversationTagsService) {
         this.conversationTagsService = conversationTagsService;
@@ -83,6 +84,8 @@ __decorate([
 ], ConversationTagsController.prototype, "remove", null);
 exports.ConversationTagsController = ConversationTagsController = __decorate([
     (0, swagger_1.ApiTags)('Conversation Tags - Etiquetas'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('api/conversation-tags'),
     __metadata("design:paramtypes", [conversation_tags_service_1.ConversationTagsService])
 ], ConversationTagsController);

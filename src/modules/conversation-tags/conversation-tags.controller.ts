@@ -6,12 +6,16 @@
   Param,
   Delete,
   ValidationPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { ConversationTagsService } from './conversation-tags.service';
 import { CreateConversationTagDto } from './dto/create-conversation-tag.dto';
-import { ApiBody, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Conversation Tags - Etiquetas')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('api/conversation-tags')
 export class ConversationTagsController {
   constructor(

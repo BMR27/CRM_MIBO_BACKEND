@@ -14,9 +14,8 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MessagesService = void 0;
 const common_1 = require("@nestjs/common");
-const typeorm_1 = require("@nestjs/typeorm");
-const typeorm_2 = require("typeorm");
-const message_entity_1 = require("./entities/message.entity");
+const tenant_scoped_repository_1 = require("../../common/tenant/tenant-scoped.repository");
+const messages_tokens_1 = require("./messages.tokens");
 let MessagesService = class MessagesService {
     constructor(messageRepository) {
         this.messageRepository = messageRepository;
@@ -24,7 +23,7 @@ let MessagesService = class MessagesService {
     async createIfNotExists(createMessageDto) {
         if (createMessageDto.whatsapp_message_id) {
             const existing = await this.messageRepository.findOne({
-                where: { whatsapp_message_id: createMessageDto.whatsapp_message_id }
+                where: { whatsapp_message_id: createMessageDto.whatsapp_message_id },
             });
             if (existing)
                 return existing;
@@ -59,7 +58,7 @@ let MessagesService = class MessagesService {
         const messages = await this.messageRepository.find({
             relations: ['conversation', 'sender'],
         });
-        return messages.map(m => this.attachMediaProxyUrl(m));
+        return messages.map((m) => this.attachMediaProxyUrl(m));
     }
     async findOne(id) {
         const message = await this.messageRepository.findOne({
@@ -74,11 +73,10 @@ let MessagesService = class MessagesService {
             relations: ['sender'],
             order: { created_at: 'ASC' },
         });
-        return messages.map(m => this.attachMediaProxyUrl(m));
+        return messages.map((m) => this.attachMediaProxyUrl(m));
     }
     async update(id, updateMessageDto) {
-        const updateData = this.messageRepository.create(updateMessageDto);
-        await this.messageRepository.update(id, updateData);
+        await this.messageRepository.update(id, updateMessageDto);
         const message = await this.findOne(id);
         return this.attachMediaProxyUrl(message);
     }
@@ -89,7 +87,7 @@ let MessagesService = class MessagesService {
 exports.MessagesService = MessagesService;
 exports.MessagesService = MessagesService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, typeorm_1.InjectRepository)(message_entity_1.Message)),
-    __metadata("design:paramtypes", [typeorm_2.Repository])
+    __param(0, (0, common_1.Inject)(messages_tokens_1.MESSAGE_REPO)),
+    __metadata("design:paramtypes", [tenant_scoped_repository_1.TenantScopedRepository])
 ], MessagesService);
 //# sourceMappingURL=messages.service.js.map

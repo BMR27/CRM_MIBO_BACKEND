@@ -14,7 +14,7 @@ export declare class ConversationsController {
     private readonly logger;
     getMessages(id: string): Promise<any[]>;
     create(createConversationDto: CreateConversationDto): Promise<{
-        conversation: import("./entities/conversation.entity").Conversation[];
+        conversation: import("./entities/conversation.entity").Conversation;
     }>;
     findAll(request: any): Promise<{
         conversations: any[];
@@ -69,10 +69,10 @@ export declare class ConversationsController {
         error: string;
         hint: string;
         error_code: number;
-        message: any[];
+        message: any;
     } | {
         success: boolean;
-        message: any[];
+        message: any;
         error?: undefined;
         hint?: undefined;
         error_code?: undefined;

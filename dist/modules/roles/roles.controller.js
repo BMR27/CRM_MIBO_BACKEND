@@ -21,8 +21,8 @@ let RolesController = class RolesController {
     constructor(rolesService) {
         this.rolesService = rolesService;
     }
-    async getRoles() {
-        return this.rolesService.findAll();
+    async getRoles(req) {
+        return this.rolesService.findAll(req.user.tenantId);
     }
     async getRoleById(id) {
         return this.rolesService.findById(id);
@@ -37,8 +37,8 @@ let RolesController = class RolesController {
         await this.rolesService.delete(id);
         return { success: true, message: 'Rol desactivado' };
     }
-    async seedRoles() {
-        await this.rolesService.seedDefaultRoles();
+    async seedRoles(req) {
+        await this.rolesService.seedDefaultRolesForTenant(req.user.tenantId);
         return { success: true, message: 'Roles por defecto creados' };
     }
 };
@@ -75,8 +75,9 @@ __decorate([
             },
         },
     }),
+    __param(0, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], RolesController.prototype, "getRoles", null);
 __decorate([
@@ -173,8 +174,9 @@ __decorate([
         summary: 'Crear roles por defecto',
         description: 'Crea los roles iniciales: Administrador, Agente, Supervisor y Usuario. Solo si no existen roles.',
     }),
+    __param(0, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], RolesController.prototype, "seedRoles", null);
 exports.RolesController = RolesController = __decorate([

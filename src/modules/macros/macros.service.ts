@@ -1,19 +1,20 @@
-﻿import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Inject, Injectable } from '@nestjs/common';
 import { Macro } from './entities/macro.entity';
 import { CreateMacroDto } from './dto/create-macro.dto';
 import { UpdateMacroDto } from './dto/update-macro.dto';
+import { TenantScopedRepository } from '../../common/tenant/tenant-scoped.repository';
+import { MACRO_REPO } from './macros.tokens';
 
 @Injectable()
 export class MacrosService {
   constructor(
-    @InjectRepository(Macro)
-    private macroRepository: Repository<Macro>,
+    @Inject(MACRO_REPO)
+    private macroRepository: TenantScopedRepository<Macro>,
   ) {}
 
   async create(createMacroDto: CreateMacroDto) {
-    return this.macroRepository.save(createMacroDto);
+    const macro = this.macroRepository.create(createMacroDto as any);
+    return this.macroRepository.save(macro);
   }
 
   async findAll() {
@@ -48,7 +49,7 @@ export class MacrosService {
   }
 
   async incrementUsage(id: string) {
-    await this.macroRepository.increment({ id }, 'usage_count', 1);
+    await this.macroRepository.increment(id, 'usage_count', 1);
   }
 
   async remove(id: string) {

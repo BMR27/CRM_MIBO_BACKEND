@@ -14,7 +14,10 @@ export class Order {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 50, unique: true })
+  @Column({ type: 'uuid' })
+  tenant_id: string;
+
+  @Column({ type: 'varchar', length: 50 })
   order_number: string;
 
   @Column({ type: 'uuid' })

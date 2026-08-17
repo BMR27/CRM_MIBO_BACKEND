@@ -1,11 +1,11 @@
-import { Repository } from 'typeorm';
 import { Order } from './entities/order.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
+import { TenantScopedRepository } from '../../common/tenant/tenant-scoped.repository';
 export declare class OrdersService {
     private orderRepository;
-    constructor(orderRepository: Repository<Order>);
-    create(createOrderDto: CreateOrderDto): Promise<CreateOrderDto & Order>;
+    constructor(orderRepository: TenantScopedRepository<Order>);
+    create(createOrderDto: CreateOrderDto): Promise<Order>;
     findAll(): Promise<Order[]>;
     findOne(id: string): Promise<Order>;
     findByContact(contactId: string): Promise<Order[]>;

@@ -14,15 +14,15 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConversationTagsService = void 0;
 const common_1 = require("@nestjs/common");
-const typeorm_1 = require("@nestjs/typeorm");
-const typeorm_2 = require("typeorm");
-const conversation_tag_entity_1 = require("./entities/conversation-tag.entity");
+const tenant_scoped_repository_1 = require("../../common/tenant/tenant-scoped.repository");
+const conversation_tags_tokens_1 = require("./conversation-tags.tokens");
 let ConversationTagsService = class ConversationTagsService {
     constructor(tagRepository) {
         this.tagRepository = tagRepository;
     }
     async create(createTagDto) {
-        return this.tagRepository.save(createTagDto);
+        const tag = this.tagRepository.create(createTagDto);
+        return this.tagRepository.save(tag);
     }
     async findAll() {
         return this.tagRepository.find();
@@ -41,13 +41,13 @@ let ConversationTagsService = class ConversationTagsService {
         await this.tagRepository.delete(id);
     }
     async removeByConversation(conversationId) {
-        await this.tagRepository.delete({ conversation_id: conversationId });
+        await this.tagRepository.deleteBy({ conversation_id: conversationId });
     }
 };
 exports.ConversationTagsService = ConversationTagsService;
 exports.ConversationTagsService = ConversationTagsService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, typeorm_1.InjectRepository)(conversation_tag_entity_1.ConversationTag)),
-    __metadata("design:paramtypes", [typeorm_2.Repository])
+    __param(0, (0, common_1.Inject)(conversation_tags_tokens_1.CONVERSATION_TAG_REPO)),
+    __metadata("design:paramtypes", [tenant_scoped_repository_1.TenantScopedRepository])
 ], ConversationTagsService);
 //# sourceMappingURL=conversation-tags.service.js.map

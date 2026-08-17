@@ -15,18 +15,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CallsController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
+const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const voice_service_1 = require("../voice/voice.service");
 let CallsController = class CallsController {
+    constructor(voiceService) {
+        this.voiceService = voiceService;
+    }
     async getCalls(conversationId) {
-        // Aquí deberías consultar la base de datos por las llamadas asociadas
-        // Por ahora, devuelve un array vacío para evitar el error 404
-        return { calls: [] };
+        const calls = await this.voiceService.findAll(conversationId);
+        return { calls };
     }
 };
 exports.CallsController = CallsController;
 __decorate([
     (0, common_1.Get)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Listar llamadas', description: 'Devuelve llamadas asociadas a una conversación cuando se envía conversation_id.' }),
-    (0, swagger_1.ApiQuery)({ name: 'conversation_id', required: false, description: 'ID de la conversación' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Listar llamadas', description: 'Devuelve llamadas del tenant, opcionalmente filtradas por conversation_id.' }),
+    (0, swagger_1.ApiQuery)({ name: 'conversation_id', required: false }),
     __param(0, (0, common_1.Query)('conversation_id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -34,6 +38,9 @@ __decorate([
 ], CallsController.prototype, "getCalls", null);
 exports.CallsController = CallsController = __decorate([
     (0, swagger_1.ApiTags)('Calls - Llamadas'),
-    (0, common_1.Controller)('calls')
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Controller)('calls'),
+    __metadata("design:paramtypes", [voice_service_1.VoiceService])
 ], CallsController);
 //# sourceMappingURL=calls.controller.js.map

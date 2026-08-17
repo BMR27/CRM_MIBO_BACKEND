@@ -6,7 +6,7 @@ export declare class MessagesController {
     private readonly messagesService;
     private readonly messagesMarkReadService;
     constructor(messagesService: MessagesService, messagesMarkReadService: MessagesMarkReadService);
-    create(createMessageDto: CreateMessageDto): Promise<any[]>;
+    create(createMessageDto: CreateMessageDto): Promise<any>;
     findAll(): Promise<any[]>;
     findOne(id: string): Promise<any>;
     findByConversation(conversationId: string): Promise<any[]>;

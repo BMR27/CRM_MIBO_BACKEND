@@ -1,25 +1,134 @@
-﻿import { Controller, Post, Get, Body, HttpCode, BadRequestException, Inject, UseGuards, Request } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { Controller, Post, Get, Body, HttpCode, BadRequestException, ForbiddenException, Inject, UseGuards, Request } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from '../users/users.service';
 import { User } from '../users/entities/user.entity';
 import { RolesService } from '../roles/roles.service';
-import { AuthGuard } from '@nestjs/passport';
+import { TenantsService } from '../tenants/tenants.service';
+import { Tenant } from '../tenants/entities/tenant.entity';
+import { Role } from '../roles/entities/role.entity';
+import { AuthService } from './auth.service';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import * as bcrypt from 'bcryptjs';
 
 @ApiTags('Auth - Autenticación')
 @Controller('auth')
 export class AuthController {
   constructor(
-    private jwtService: JwtService,
     @Inject(UsersService) private usersService: UsersService,
     @Inject(RolesService) private rolesService: RolesService,
+    @Inject(TenantsService) private tenantsService: TenantsService,
+    private authService: AuthService,
+    @InjectDataSource() private dataSource: DataSource,
   ) {}
+
+  @Post('signup-company')
+  @HttpCode(201)
+  @ApiOperation({
+    summary: 'Registrar compañía',
+    description:
+      'Crea un nuevo tenant (espacio de trabajo) junto con su usuario administrador. Retorna un token JWT.',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        legalType: { type: 'string', enum: ['fisica', 'moral'], example: 'moral' },
+        companyName: { type: 'string', example: 'Acme Inc.' },
+        taxId: { type: 'string', example: 'ACM010101AAA' },
+        adminName: { type: 'string', example: 'Jane Doe' },
+        adminEmail: { type: 'string', example: 'jane@acme.com' },
+        adminPassword: { type: 'string', example: 'password123' },
+      },
+      required: ['legalType', 'companyName', 'adminName', 'adminEmail', 'adminPassword'],
+    },
+  })
+  @ApiResponse({ status: 201, description: 'Compañía y usuario administrador creados. Retorna JWT.' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos o email ya registrado' })
+  async signupCompany(
+    @Body()
+    body: {
+      legalType?: 'fisica' | 'moral';
+      companyName: string;
+      taxId?: string;
+      adminName: string;
+      adminEmail: string;
+      adminPassword: string;
+    },
+  ) {
+    if (!body.companyName || !body.adminEmail || !body.adminPassword) {
+      throw new BadRequestException('companyName, adminEmail y adminPassword son requeridos');
+    }
+    if (body.legalType && !['fisica', 'moral'].includes(body.legalType)) {
+      throw new BadRequestException('legalType debe ser "fisica" o "moral"');
+    }
+
+    try {
+      return await this.dataSource.transaction(async (manager) => {
+        const tenant = await this.tenantsService.createTenant(
+          {
+            name: body.companyName,
+            legal_type: body.legalType || 'fisica',
+            tax_id: body.taxId,
+            legal_name: body.legalType === 'moral' ? body.companyName : undefined,
+          },
+          manager,
+        );
+
+        await this.rolesService.seedDefaultRolesForTenant(tenant.id, manager);
+
+        const adminRole = await manager.findOne(Role, {
+          where: { tenant_id: tenant.id, name: 'Administrador' },
+        });
+
+        const hashedPassword = await bcrypt.hash(body.adminPassword, 10);
+        const user = manager.create(User, {
+          tenant_id: tenant.id,
+          email: body.adminEmail,
+          password_hash: hashedPassword,
+          name: body.adminName || body.adminEmail.split('@')[0],
+          role_id: adminRole?.id || null,
+          status: 'offline',
+        });
+        const savedUser = await manager.save(User, user);
+
+        const token = this.authService.signToken(
+          { id: savedUser.id, email: savedUser.email, role: adminRole },
+          tenant.id,
+        );
+
+        return {
+          message: 'Compañía registrada exitosamente',
+          access_token: token,
+          token_type: 'Bearer',
+          expires_in: '7d',
+          tenant: { id: tenant.id, name: tenant.name, slug: tenant.slug },
+          user: {
+            id: savedUser.id,
+            email: savedUser.email,
+            name: savedUser.name,
+            role: adminRole?.name || null,
+            tenant_id: tenant.id,
+          },
+        };
+      });
+    } catch (error: any) {
+      if (error?.code === '23505') {
+        throw new BadRequestException('El email ya está registrado');
+      }
+      throw new BadRequestException(error.message || 'Error al registrar la compañía');
+    }
+  }
 
   @Post('signup')
   @HttpCode(201)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Registrarse',
-    description: 'Crea una nueva cuenta de usuario y retorna un token JWT.',
+    summary: 'Registrar agente',
+    description:
+      'Crea un nuevo usuario/agente dentro del tenant del administrador autenticado. Requiere JWT de un admin.',
   })
   @ApiBody({
     schema: {
@@ -32,52 +141,34 @@ export class AuthController {
       required: ['email', 'password'],
     },
   })
-  @ApiResponse({
-    status: 201,
-    description: 'Registro exitoso. Retorna usuario y JWT token.',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'El email ya está registrado',
-  })
-  async signup(@Body() body: { email: string; password: string; name?: string }) {
+  @ApiResponse({ status: 201, description: 'Registro exitoso. Retorna usuario y JWT token.' })
+  @ApiResponse({ status: 400, description: 'El email ya está registrado' })
+  async signup(@Request() req, @Body() body: { email: string; password: string; name?: string }) {
+    // Nota: no se usa @Roles('admin') aquí porque el RolesGuard global (APP_GUARD) se ejecuta
+    // antes que los guards declarados a nivel de método como JwtAuthGuard, por lo que
+    // request.user todavía no existiría cuando RolesGuard lo revisa. Se valida el rol a mano.
+    if (req.user.role !== 'admin') {
+      throw new ForbiddenException('Solo un administrador puede registrar nuevos agentes');
+    }
+
     try {
-      // Verificar si el usuario ya existe
-      const existingUser = await this.usersService.findByEmail(body.email);
-      if (existingUser) {
-        throw new BadRequestException('El email ya está registrado');
-      }
+      const tenantId: string = req.user.tenantId;
 
-        // Rol por defecto: Agente
-        const agentRole = await this.rolesService.findByName('Agente');
+      const agentRole = await this.rolesService.findByNameForTenant(tenantId, 'Agente');
 
-        const user: User = await this.usersService.create({
+      const user: User = await this.usersService.create({
         email: body.email,
         password: body.password,
         full_name: body.name || body.email.split('@')[0],
-          role_id: agentRole?.id || null,
+        role_id: agentRole?.id || null,
+        tenant_id: tenantId,
       });
 
-        // Cargar usuario con rol
-      const userWithRole = await this.usersService.findByEmailWithRole(user.email);
+      const userWithRole = await this.usersService.findById(user.id);
 
-        // Normalizar rol para JWT ('admin' | 'supervisor' | 'agent')
-        const normalizeRole = (name?: string) => {
-          const n = (name || '').toLowerCase();
-          if (n.startsWith('admin')) return 'admin';
-          if (n.startsWith('super')) return 'supervisor';
-          if (n.startsWith('agente') || n.startsWith('agent')) return 'agent';
-          return 'agent';
-        };
-
-        // Generar token JWT con rol
-      const token = this.jwtService.sign(
-        { 
-          email: userWithRole.email, 
-          sub: userWithRole.id,
-            role: normalizeRole(userWithRole.role?.name),
-        },
-        { expiresIn: '7d' },
+      const token = this.authService.signToken(
+        { id: userWithRole.id, email: userWithRole.email, role: userWithRole.role },
+        tenantId,
       );
 
       return {
@@ -90,9 +181,13 @@ export class AuthController {
           email: userWithRole.email,
           name: userWithRole.name,
           role: userWithRole.role?.name || null,
+          tenant_id: tenantId,
         },
       };
     } catch (error: any) {
+      if (error?.code === '23505') {
+        throw new BadRequestException('El email ya está registrado');
+      }
       throw new BadRequestException(error.message || 'Error al registrar usuario');
     }
   }
@@ -142,34 +237,19 @@ export class AuthController {
   })
   async login(@Body() body: { email: string; password: string }) {
     try {
-      // Buscar usuario por email con rol
       const user: User = await this.usersService.findByEmailWithRole(body.email);
       if (!user) {
         throw new BadRequestException('Email o contraseña inválidos');
       }
 
-      // Validar contraseña
       const isValidPassword = await this.usersService.validatePassword(user, body.password);
       if (!isValidPassword) {
         throw new BadRequestException('Email o contraseña inválidos');
       }
 
-      // Generar token JWT con información del rol
-      const normalizeRole = (name?: string) => {
-        const n = (name || '').toLowerCase();
-        if (n.startsWith('admin')) return 'admin';
-        if (n.startsWith('super')) return 'supervisor';
-        if (n.startsWith('agente') || n.startsWith('agent')) return 'agent';
-        return 'agent';
-      };
-
-      const token = this.jwtService.sign(
-        { 
-          email: user.email, 
-          sub: user.id,
-          role: normalizeRole(user.role?.name),
-        },
-        { expiresIn: '7d' },
+      const token = this.authService.signToken(
+        { id: user.id, email: user.email, role: user.role },
+        user.tenant_id,
       );
 
       return {
@@ -182,6 +262,7 @@ export class AuthController {
           name: user.name,
           role: user.role?.name || null,
           role_id: user.role_id,
+          tenant_id: user.tenant_id,
         },
       };
     } catch (error: any) {
@@ -190,7 +271,7 @@ export class AuthController {
   }
 
   @Get('me')
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Obtener información del usuario actual',
@@ -215,10 +296,8 @@ export class AuthController {
     description: 'No autorizado - Token inválido o expirado',
   })
   async getMe(@Request() req) {
-    // El usuario viene del JWT strategy
-    const userId = req.user.sub;
     const user = await this.usersService.findByEmailWithRole(req.user.email);
-    
+
     if (!user) {
       throw new BadRequestException('Usuario no encontrado');
     }
@@ -229,39 +308,7 @@ export class AuthController {
       name: user.name,
       role: user.role?.name || null,
       role_id: user.role_id,
-    };
-  }
-
-  @Post('test-token')
-  @HttpCode(200)
-  @ApiOperation({
-    summary: 'Generar token de prueba',
-    description:
-      'Genera un token JWT de prueba válido sin validar credenciales. Útil solo para testing.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Token generado',
-    schema: {
-      type: 'object',
-      properties: {
-        access_token: { type: 'string' },
-        message: {
-          type: 'string',
-          example: 'Usa este token en Authorization header: Bearer {token}',
-        },
-      },
-    },
-  })
-  generateTestToken() {
-    const token = this.jwtService.sign(
-      { email: 'test@example.com', sub: 'test-user', role: 'admin' },
-      { expiresIn: '7d' },
-    );
-
-    return {
-      access_token: token,
-      message: 'Usa este token en el header Authorization: Bearer ' + token,
+      tenant_id: user.tenant_id,
     };
   }
 }

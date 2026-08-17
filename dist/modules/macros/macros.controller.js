@@ -18,6 +18,7 @@ const macros_service_1 = require("./macros.service");
 const create_macro_dto_1 = require("./dto/create-macro.dto");
 const update_macro_dto_1 = require("./dto/update-macro.dto");
 const swagger_1 = require("@nestjs/swagger");
+const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 let MacrosController = class MacrosController {
     constructor(macrosService) {
         this.macrosService = macrosService;
@@ -98,6 +99,8 @@ __decorate([
 ], MacrosController.prototype, "remove", null);
 exports.MacrosController = MacrosController = __decorate([
     (0, swagger_1.ApiTags)('Macros - Respuestas rápidas'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('api/macros'),
     __metadata("design:paramtypes", [macros_service_1.MacrosService])
 ], MacrosController);

@@ -1,6 +1,7 @@
 import { User } from '../../users/entities/user.entity';
 export declare class Macro {
     id: string;
+    tenant_id: string;
     title: string;
     content: string;
     shortcut: string;

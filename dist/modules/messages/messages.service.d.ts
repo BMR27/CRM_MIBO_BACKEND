@@ -1,13 +1,13 @@
-import { Repository } from 'typeorm';
 import { Message } from './entities/message.entity';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
+import { TenantScopedRepository } from '../../common/tenant/tenant-scoped.repository';
 export declare class MessagesService {
     private messageRepository;
-    constructor(messageRepository: Repository<Message>);
-    createIfNotExists(createMessageDto: CreateMessageDto): Promise<any[] | Message>;
+    constructor(messageRepository: TenantScopedRepository<Message>);
+    createIfNotExists(createMessageDto: CreateMessageDto): Promise<any>;
     private attachMediaProxyUrl;
-    create(createMessageDto: CreateMessageDto): Promise<any[]>;
+    create(createMessageDto: CreateMessageDto): Promise<any>;
     findAll(): Promise<any[]>;
     findOne(id: string): Promise<any>;
     findByConversation(conversationId: string): Promise<any[]>;

@@ -9,11 +9,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CallsModule = void 0;
 const common_1 = require("@nestjs/common");
 const calls_controller_1 = require("./calls.controller");
+const voice_module_1 = require("../voice/voice.module");
 let CallsModule = class CallsModule {
 };
 exports.CallsModule = CallsModule;
 exports.CallsModule = CallsModule = __decorate([
     (0, common_1.Module)({
+        imports: [voice_module_1.VoiceModule],
         controllers: [calls_controller_1.CallsController],
     })
 ], CallsModule);

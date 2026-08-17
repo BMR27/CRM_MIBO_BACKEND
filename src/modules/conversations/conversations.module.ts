@@ -1,8 +1,10 @@
-﻿import { Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Conversation } from './entities/conversation.entity';
 import { ConversationsService } from './conversations.service';
 import { ConversationsController } from './conversations.controller';
+import { CONVERSATION_REPO } from './conversations.tokens';
+import { tenantScopedRepositoryProvider } from '../../common/tenant/tenant-scoped-repository.provider';
 // ...existing code...
 import { MessagesModule } from '../messages/messages.module';
 import { ContactsModule } from '../contacts/contacts.module';
@@ -11,7 +13,10 @@ import { WhatsappModule } from '../whatsapp/whatsapp.module';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Conversation]), forwardRef(() => MessagesModule), ContactsModule, forwardRef(() => WhatsappModule)],
-  providers: [ConversationsService],
+  providers: [
+    ConversationsService,
+    tenantScopedRepositoryProvider(CONVERSATION_REPO, Conversation),
+  ],
   controllers: [ConversationsController],
   exports: [ConversationsService],
 })

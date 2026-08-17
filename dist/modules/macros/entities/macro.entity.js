@@ -20,6 +20,10 @@ __decorate([
     __metadata("design:type", String)
 ], Macro.prototype, "id", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'uuid' }),
+    __metadata("design:type", String)
+], Macro.prototype, "tenant_id", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'varchar', length: 255 }),
     __metadata("design:type", String)
 ], Macro.prototype, "title", void 0);
@@ -28,7 +32,7 @@ __decorate([
     __metadata("design:type", String)
 ], Macro.prototype, "content", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'varchar', length: 50, unique: true }),
+    (0, typeorm_1.Column)({ type: 'varchar', length: 50 }),
     __metadata("design:type", String)
 ], Macro.prototype, "shortcut", void 0);
 __decorate([

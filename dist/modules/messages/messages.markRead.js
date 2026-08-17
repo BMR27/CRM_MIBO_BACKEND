@@ -14,22 +14,21 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MessagesMarkReadService = void 0;
 const common_1 = require("@nestjs/common");
-const typeorm_1 = require("@nestjs/typeorm");
-const typeorm_2 = require("typeorm");
-const message_entity_1 = require("./entities/message.entity");
+const tenant_scoped_repository_1 = require("../../common/tenant/tenant-scoped.repository");
+const messages_tokens_1 = require("./messages.tokens");
 let MessagesMarkReadService = class MessagesMarkReadService {
     constructor(messageRepository) {
         this.messageRepository = messageRepository;
     }
     async markConversationMessagesAsRead(conversationId) {
-        await this.messageRepository.update({ conversation_id: conversationId, is_read: false }, { is_read: true, read_at: new Date() });
+        await this.messageRepository.updateBy({ conversation_id: conversationId, is_read: false }, { is_read: true, read_at: new Date() });
         return { success: true };
     }
 };
 exports.MessagesMarkReadService = MessagesMarkReadService;
 exports.MessagesMarkReadService = MessagesMarkReadService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, typeorm_1.InjectRepository)(message_entity_1.Message)),
-    __metadata("design:paramtypes", [typeorm_2.Repository])
+    __param(0, (0, common_1.Inject)(messages_tokens_1.MESSAGE_REPO)),
+    __metadata("design:paramtypes", [tenant_scoped_repository_1.TenantScopedRepository])
 ], MessagesMarkReadService);
 //# sourceMappingURL=messages.markRead.js.map

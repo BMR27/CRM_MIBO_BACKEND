@@ -16,6 +16,7 @@ exports.TwilioController = void 0;
 const common_1 = require("@nestjs/common");
 const twilio_service_1 = require("./twilio.service");
 const messages_service_1 = require("../modules/messages/messages.service");
+const jwt_auth_guard_1 = require("../modules/auth/guards/jwt-auth.guard");
 const swagger_1 = require("@nestjs/swagger");
 let TwilioController = class TwilioController {
     constructor(twilioService, messagesService) {
@@ -72,7 +73,7 @@ let TwilioController = class TwilioController {
     }
     async sendWAMedia(body) {
         const to = String(body?.to || '').trim();
-        const from = String(body?.from || process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886').trim();
+        const from = String(body?.from || (await this.twilioService.getDefaultWhatsappFrom()) || '').trim();
         const mediaUrl = String(body?.mediaUrl || '').trim();
         const textBody = typeof body?.body === 'string' ? body.body : undefined;
         if (!to || !mediaUrl) {
@@ -117,6 +118,7 @@ let TwilioController = class TwilioController {
 exports.TwilioController = TwilioController;
 __decorate([
     (0, common_1.Post)('wa-templates'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiOperation)({ summary: 'Obtener plantillas aprobadas de WhatsApp en Twilio' }),
     (0, swagger_1.ApiBody)({
         schema: {
@@ -133,6 +135,7 @@ __decorate([
 ], TwilioController.prototype, "getApprovedWATemplates", null);
 __decorate([
     (0, common_1.Post)('send-wa-template'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiOperation)({ summary: 'Enviar plantilla WhatsApp por Twilio' }),
     (0, swagger_1.ApiBody)({
         schema: {
@@ -156,6 +159,7 @@ __decorate([
 ], TwilioController.prototype, "sendWATemplate", null);
 __decorate([
     (0, common_1.Post)('send-wa-media'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiOperation)({ summary: 'Enviar media por WhatsApp vía Twilio' }),
     (0, swagger_1.ApiBody)({
         schema: {
@@ -190,6 +194,7 @@ __decorate([
 ], TwilioController.prototype, "optionsSendWaMedia", null);
 __decorate([
     (0, common_1.Get)('media-by-message/:messageSid'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiOperation)({ summary: 'Descargar primer archivo media asociado a un mensaje Twilio' }),
     (0, swagger_1.ApiParam)({ name: 'messageSid', description: 'SID del mensaje Twilio', example: 'SMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' }),
     (0, swagger_1.ApiQuery)({ name: 'filename', required: false, description: 'Nombre sugerido para responder Content-Disposition' }),
@@ -204,6 +209,7 @@ __decorate([
 ], TwilioController.prototype, "getMediaByMessage", null);
 exports.TwilioController = TwilioController = __decorate([
     (0, swagger_1.ApiTags)('Twilio - WhatsApp Templates y Media'),
+    (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.Controller)('twilio'),
     __metadata("design:paramtypes", [twilio_service_1.TwilioService,
         messages_service_1.MessagesService])

@@ -14,10 +14,9 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConversationsService = void 0;
 const common_1 = require("@nestjs/common");
-const typeorm_1 = require("@nestjs/typeorm");
-const typeorm_2 = require("typeorm");
-const conversation_entity_1 = require("./entities/conversation.entity");
 const messages_service_1 = require("../messages/messages.service");
+const tenant_scoped_repository_1 = require("../../common/tenant/tenant-scoped.repository");
+const conversations_tokens_1 = require("./conversations.tokens");
 let ConversationsService = class ConversationsService {
     constructor(conversationRepository, messagesService) {
         this.conversationRepository = conversationRepository;
@@ -60,7 +59,7 @@ let ConversationsService = class ConversationsService {
             relations: ['contact', 'assigned_agent', 'messages'],
         });
         if (!conversation) {
-            throw new (require('@nestjs/common').NotFoundException)('Conversation not found');
+            throw new common_1.NotFoundException('Conversation not found');
         }
         // Mapeo explícito para frontend
         return {
@@ -78,6 +77,12 @@ let ConversationsService = class ConversationsService {
         return this.conversationRepository.find({
             where: { contact_id: contactId },
             relations: ['assigned_agent'],
+        });
+    }
+    async findByExternalUserId(channel, externalUserId) {
+        return this.conversationRepository.find({
+            where: { channel, external_user_id: externalUserId },
+            relations: ['assigned_agent', 'contact'],
         });
     }
     async findByAssignedAgent(agentId) {
@@ -98,8 +103,7 @@ let ConversationsService = class ConversationsService {
         return this.findOne(conversationId);
     }
     async update(id, updateConversationDto) {
-        const updateData = this.conversationRepository.create(updateConversationDto);
-        await this.conversationRepository.update(id, updateData);
+        await this.conversationRepository.update(id, updateConversationDto);
         return this.findOne(id);
     }
     async remove(id) {
@@ -110,8 +114,8 @@ let ConversationsService = class ConversationsService {
 exports.ConversationsService = ConversationsService;
 exports.ConversationsService = ConversationsService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, typeorm_1.InjectRepository)(conversation_entity_1.Conversation)),
-    __metadata("design:paramtypes", [typeorm_2.Repository,
+    __param(0, (0, common_1.Inject)(conversations_tokens_1.CONVERSATION_REPO)),
+    __metadata("design:paramtypes", [tenant_scoped_repository_1.TenantScopedRepository,
         messages_service_1.MessagesService])
 ], ConversationsService);
 //# sourceMappingURL=conversations.service.js.map

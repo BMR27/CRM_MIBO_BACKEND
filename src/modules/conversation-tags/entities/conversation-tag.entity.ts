@@ -14,6 +14,9 @@ export class ConversationTag {
   id: string;
 
   @Column({ type: 'uuid' })
+  tenant_id: string;
+
+  @Column({ type: 'uuid' })
   conversation_id: string;
 
   @Column({ type: 'varchar', length: 100 })

@@ -1,12 +1,14 @@
 
-import { Body, Controller, Post, Options, Get, Param, Query, Res } from '@nestjs/common';
+import { Body, Controller, Post, Options, Get, Param, Query, Res, UseGuards } from '@nestjs/common';
 import { TwilioService } from './twilio.service';
 import { MessagesService } from '../modules/messages/messages.service';
+import { JwtAuthGuard } from '../modules/auth/guards/jwt-auth.guard';
 import { Response } from 'express';
-import { ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 
 @ApiTags('Twilio - WhatsApp Templates y Media')
+@ApiBearerAuth()
 @Controller('twilio')
 export class TwilioController {
   constructor(
@@ -19,6 +21,7 @@ export class TwilioController {
    * POST /api/twilio/wa-templates { serviceSid }
    */
   @Post('wa-templates')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Obtener plantillas aprobadas de WhatsApp en Twilio' })
   @ApiBody({
     schema: {
@@ -40,6 +43,7 @@ export class TwilioController {
 
 
   @Post('send-wa-template')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Enviar plantilla WhatsApp por Twilio' })
   @ApiBody({
     schema: {
@@ -90,6 +94,7 @@ export class TwilioController {
   }
 
   @Post('send-wa-media')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Enviar media por WhatsApp vía Twilio' })
   @ApiBody({
     schema: {
@@ -105,7 +110,7 @@ export class TwilioController {
   })
   async sendWAMedia(@Body() body: any) {
     const to = String(body?.to || '').trim();
-    const from = String(body?.from || process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886').trim();
+    const from = String(body?.from || (await this.twilioService.getDefaultWhatsappFrom()) || '').trim();
     const mediaUrl = String(body?.mediaUrl || '').trim();
     const textBody = typeof body?.body === 'string' ? body.body : undefined;
 
@@ -136,6 +141,7 @@ export class TwilioController {
   }
 
   @Get('media-by-message/:messageSid')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Descargar primer archivo media asociado a un mensaje Twilio' })
   @ApiParam({ name: 'messageSid', description: 'SID del mensaje Twilio', example: 'SMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' })
   @ApiQuery({ name: 'filename', required: false, description: 'Nombre sugerido para responder Content-Disposition' })

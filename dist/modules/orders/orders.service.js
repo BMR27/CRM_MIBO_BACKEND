@@ -14,15 +14,15 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OrdersService = void 0;
 const common_1 = require("@nestjs/common");
-const typeorm_1 = require("@nestjs/typeorm");
-const typeorm_2 = require("typeorm");
-const order_entity_1 = require("./entities/order.entity");
+const tenant_scoped_repository_1 = require("../../common/tenant/tenant-scoped.repository");
+const orders_tokens_1 = require("./orders.tokens");
 let OrdersService = class OrdersService {
     constructor(orderRepository) {
         this.orderRepository = orderRepository;
     }
     async create(createOrderDto) {
-        return this.orderRepository.save(createOrderDto);
+        const order = this.orderRepository.create(createOrderDto);
+        return this.orderRepository.save(order);
     }
     async findAll() {
         return this.orderRepository.find({
@@ -56,7 +56,7 @@ let OrdersService = class OrdersService {
 exports.OrdersService = OrdersService;
 exports.OrdersService = OrdersService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, typeorm_1.InjectRepository)(order_entity_1.Order)),
-    __metadata("design:paramtypes", [typeorm_2.Repository])
+    __param(0, (0, common_1.Inject)(orders_tokens_1.ORDER_REPO)),
+    __metadata("design:paramtypes", [tenant_scoped_repository_1.TenantScopedRepository])
 ], OrdersService);
 //# sourceMappingURL=orders.service.js.map

@@ -1,12 +1,41 @@
-import { JwtService } from '@nestjs/jwt';
+import { DataSource } from 'typeorm';
 import { UsersService } from '../users/users.service';
 import { RolesService } from '../roles/roles.service';
+import { TenantsService } from '../tenants/tenants.service';
+import { AuthService } from './auth.service';
 export declare class AuthController {
-    private jwtService;
     private usersService;
     private rolesService;
-    constructor(jwtService: JwtService, usersService: UsersService, rolesService: RolesService);
-    signup(body: {
+    private tenantsService;
+    private authService;
+    private dataSource;
+    constructor(usersService: UsersService, rolesService: RolesService, tenantsService: TenantsService, authService: AuthService, dataSource: DataSource);
+    signupCompany(body: {
+        legalType?: 'fisica' | 'moral';
+        companyName: string;
+        taxId?: string;
+        adminName: string;
+        adminEmail: string;
+        adminPassword: string;
+    }): Promise<{
+        message: string;
+        access_token: string;
+        token_type: string;
+        expires_in: string;
+        tenant: {
+            id: string;
+            name: string;
+            slug: string;
+        };
+        user: {
+            id: string;
+            email: string;
+            name: string;
+            role: string;
+            tenant_id: string;
+        };
+    }>;
+    signup(req: any, body: {
         email: string;
         password: string;
         name?: string;
@@ -20,6 +49,7 @@ export declare class AuthController {
             email: string;
             name: string;
             role: string;
+            tenant_id: string;
         };
     }>;
     login(body: {
@@ -35,6 +65,7 @@ export declare class AuthController {
             name: string;
             role: string;
             role_id: string;
+            tenant_id: string;
         };
     }>;
     getMe(req: any): Promise<{
@@ -43,10 +74,7 @@ export declare class AuthController {
         name: string;
         role: string;
         role_id: string;
+        tenant_id: string;
     }>;
-    generateTestToken(): {
-        access_token: string;
-        message: string;
-    };
 }
 //# sourceMappingURL=auth.controller.d.ts.map

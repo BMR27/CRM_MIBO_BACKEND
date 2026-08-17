@@ -2,6 +2,7 @@ import { Conversation } from '../../conversations/entities/conversation.entity';
 import { Order } from '../../orders/entities/order.entity';
 export declare class Contact {
     id: string;
+    tenant_id: string;
     phone_number: string;
     name: string;
     avatar_url: string;

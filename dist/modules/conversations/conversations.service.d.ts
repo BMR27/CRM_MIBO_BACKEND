@@ -1,19 +1,20 @@
-import { Repository } from 'typeorm';
 import { Conversation } from './entities/conversation.entity';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { UpdateConversationDto } from './dto/update-conversation.dto';
 import { MessagesService } from '../messages/messages.service';
+import { TenantScopedRepository } from '../../common/tenant/tenant-scoped.repository';
 export declare class ConversationsService {
     private conversationRepository;
     private messagesService;
-    constructor(conversationRepository: Repository<Conversation>, messagesService: MessagesService);
+    constructor(conversationRepository: TenantScopedRepository<Conversation>, messagesService: MessagesService);
     getMessagesByConversation(conversationId: string): Promise<any[]>;
-    create(createConversationDto: CreateConversationDto): Promise<Conversation[]>;
+    create(createConversationDto: CreateConversationDto): Promise<Conversation>;
     findAll(): Promise<{
         last_message: any;
         unread_count: number;
         channel: string;
         id: string;
+        tenant_id: string;
         contact_id: string;
         assigned_agent_id: string;
         status: "active" | "paused" | "resolved";
@@ -39,6 +40,7 @@ export declare class ConversationsService {
         created_at: Date;
     }>;
     findByContact(contactId: string): Promise<Conversation[]>;
+    findByExternalUserId(channel: string, externalUserId: string): Promise<Conversation[]>;
     findByAssignedAgent(agentId: string): Promise<Conversation[]>;
     assignAgent(conversationId: string, agentId: string): Promise<{
         id: string;

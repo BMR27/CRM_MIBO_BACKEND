@@ -15,43 +15,62 @@ var WhatsappService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WhatsappService = void 0;
 const common_1 = require("@nestjs/common");
-const config_1 = require("@nestjs/config");
 const twilio_1 = __importDefault(require("twilio"));
 const contacts_service_1 = require("../contacts/contacts.service");
 const conversations_service_1 = require("../conversations/conversations.service");
 const messages_service_1 = require("../messages/messages.service");
 const stream_1 = require("stream");
 const phone_1 = require("../../lib/phone");
+const tenant_context_1 = require("../../common/tenant/tenant-context");
+const whatsapp_integrations_service_1 = require("./whatsapp-integrations.service");
 let WhatsappService = WhatsappService_1 = class WhatsappService {
-    constructor(configService, contactsService, conversationsService, messagesService) {
-        this.configService = configService;
+    constructor(integrationsService, contactsService, conversationsService, messagesService) {
+        this.integrationsService = integrationsService;
         this.contactsService = contactsService;
         this.conversationsService = conversationsService;
         this.messagesService = messagesService;
         this.logger = new common_1.Logger(WhatsappService_1.name);
-        this.twilioClient = null;
-        this.twilioPhoneNumber = null;
-        this.cloudAccessToken = null;
-        this.cloudPhoneNumberId = null;
-        this.cloudWabaId = null;
-        const accountSid = configService.get('TWILIO_ACCOUNT_SID');
-        const authToken = configService.get('TWILIO_AUTH_TOKEN');
-        this.webhookToken = configService.get('TWILIO_WEBHOOK_TOKEN') || 'default-token';
-        if (accountSid && authToken) {
-            this.twilioClient = (0, twilio_1.default)(accountSid, authToken);
-            this.twilioPhoneNumber = configService.get('TWILIO_PHONE_NUMBER') || '+1234567890';
-        }
-        else {
-            this.logger.warn('Twilio credentials not configured. Twilio features disabled.');
-        }
-        this.cloudAccessToken = configService.get('WHATSAPP_ACCESS_TOKEN') || null;
-        this.cloudPhoneNumberId = configService.get('WHATSAPP_PHONE_NUMBER_ID') || null;
-        this.cloudWabaId = configService.get('WHATSAPP_WABA_ID') || null;
-        this.cloudTemplateLanguage =
-            configService.get('WHATSAPP_TEMPLATE_LANGUAGE') || 'es_MX';
     }
-    validateWebhookToken(token) {
-        return token === this.webhookToken;
+    /** Config del tenant actual (resuelto vía TenantContext). Lanza si no está configurado. */
+    async getConfig() {
+        const tenantId = tenant_context_1.TenantContext.getTenantId();
+        const config = await this.integrationsService.getConfigForTenant(tenantId);
+        if (!config) {
+            throw new common_1.BadRequestException('WhatsApp no está configurado para este espacio de trabajo');
+        }
+        return config;
+    }
+    buildTwilioClient(config) {
+        if (config.twilioAccountSid && config.twilioAuthToken) {
+            return (0, twilio_1.default)(config.twilioAccountSid, config.twilioAuthToken);
+        }
+        return null;
+    }
+    /**
+     * Resuelve a qué tenant pertenece un webhook entrante, SIN tener todavía un TenantContext
+     * activo (lo llama el controller antes de envolver el procesamiento en TenantContext.run()).
+     */
+    async resolveTenantForWebhook(body) {
+        if (body?.object === 'whatsapp_business_account' || body?.entry?.length) {
+            for (const entry of body?.entry || []) {
+                for (const change of entry?.changes || []) {
+                    const phoneNumberId = change?.value?.metadata?.phone_number_id;
+                    if (phoneNumberId) {
+                        const tenantId = await this.integrationsService.findTenantIdByCloudPhoneNumberId(phoneNumberId);
+                        if (tenantId)
+                            return tenantId;
+                    }
+                }
+            }
+            return null;
+        }
+        const accountId = body?.AccountSid;
+        if (!accountId)
+            return null;
+        return this.integrationsService.findTenantIdByTwilioAccountSid(accountId);
+    }
+    async resolveTenantForVerifyToken(token) {
+        return this.integrationsService.findTenantIdByVerifyToken(token);
     }
     async handleWebhook(body) {
         try {
@@ -62,11 +81,6 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
             const messageBody = body.Body || '';
             const senderPhoneNumber = body.From;
             const messageId = body.MessageSid;
-            const accountId = body.AccountSid;
-            if (accountId && accountId !== this.configService.get('TWILIO_ACCOUNT_SID')) {
-                this.logger.warn('Invalid account ID in webhook');
-                return;
-            }
             if (!senderPhoneNumber || !messageId) {
                 this.logger.warn('Missing required fields in webhook');
                 return;
@@ -194,17 +208,17 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
     }
     async sendMessage(phoneNumber, message) {
         try {
+            const config = await this.getConfig();
+            const twilioClient = this.buildTwilioClient(config);
             const normalizedPhone = this.normalizePhoneNumber(phoneNumber);
-            if (this.twilioClient && this.twilioPhoneNumber) {
-                // Usar el valor normalizado directamente, sin duplicar el prefijo
+            if (twilioClient && config.twilioWhatsappNumber) {
                 try {
-                    const response = await this.twilioClient.messages.create({
-                        from: `whatsapp:${this.twilioPhoneNumber}`,
+                    const response = await twilioClient.messages.create({
+                        from: `whatsapp:${config.twilioWhatsappNumber}`,
                         to: normalizedPhone,
                         body: message,
                     });
                     this.logger.log(`Message sent to ${normalizedPhone}, SID: ${response.sid}`);
-                    // Save agent message to the correct conversation
                     const contact = await this.contactsService.findOrCreateByPhone(normalizedPhone);
                     const conversations = await this.conversationsService.findByContact(contact.id);
                     let activeConversation = null;
@@ -237,7 +251,6 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
                     };
                 }
             }
-            // Si no hay Twilio, retornar error
             return {
                 success: false,
                 error: 'Twilio not configured',
@@ -253,12 +266,13 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
     }
     async sendMediaMessage(phoneNumber, input) {
         try {
+            const config = await this.getConfig();
             const cleanPhone = this.normalizePhoneNumber(phoneNumber);
-            if (!this.cloudAccessToken || !this.cloudPhoneNumberId) {
+            if (!config.cloudAccessToken || !config.cloudPhoneNumberId) {
                 return {
                     success: false,
                     error: 'Cloud API not configured',
-                    hint: 'Configura WHATSAPP_ACCESS_TOKEN y WHATSAPP_PHONE_NUMBER_ID para poder enviar media. Twilio fallback para media requiere URLs públicas (mediaUrl), no upload binario desde este endpoint.',
+                    hint: 'Configura el access token y el phone number id de WhatsApp Cloud API en Configuración > Integraciones para poder enviar media.',
                 };
             }
             if (!input?.fileBuffer?.length) {
@@ -267,14 +281,14 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
                     error: 'fileBuffer is required',
                 };
             }
-            const upload = await this.uploadCloudMedia({
+            const upload = await this.uploadCloudMedia(config, {
                 fileBuffer: input.fileBuffer,
                 mimeType: input.mimeType,
                 filename: input.filename,
             });
             if (!upload.success)
                 return upload;
-            const send = await this.sendCloudMediaMessage(cleanPhone, {
+            const send = await this.sendCloudMediaMessage(config, cleanPhone, {
                 type: input.type,
                 mediaId: upload.media_id,
                 caption: input.caption,
@@ -297,7 +311,8 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
         }
     }
     async downloadCloudMedia(mediaId, options) {
-        if (!this.cloudAccessToken) {
+        const config = await this.getConfig();
+        if (!config.cloudAccessToken) {
             throw new common_1.HttpException('Cloud API not configured', common_1.HttpStatus.BAD_REQUEST);
         }
         const id = String(mediaId || '').trim();
@@ -308,7 +323,7 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
         const infoResponse = await fetch(`https://graph.facebook.com/v19.0/${encodeURIComponent(id)}`, {
             method: 'GET',
             headers: {
-                Authorization: `Bearer ${this.cloudAccessToken}`,
+                Authorization: `Bearer ${config.cloudAccessToken}`,
             },
         });
         const infoText = await infoResponse.text();
@@ -320,8 +335,7 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
             infoData = null;
         }
         if (!infoResponse.ok) {
-            // Graph devuelve { error: { ... } }
-            const formatted = this.formatCloudApiError(infoData || { error: { message: infoText } });
+            const formatted = this.formatCloudApiError(config, infoData || { error: { message: infoText } });
             throw new common_1.HttpException(formatted, common_1.HttpStatus.BAD_GATEWAY);
         }
         const downloadUrl = String(infoData?.url || '');
@@ -332,7 +346,7 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
         const fileResponse = await fetch(downloadUrl, {
             method: 'GET',
             headers: {
-                Authorization: `Bearer ${this.cloudAccessToken}`,
+                Authorization: `Bearer ${config.cloudAccessToken}`,
             },
         });
         if (!fileResponse.ok) {
@@ -344,14 +358,13 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
             catch {
                 errJson = null;
             }
-            const formatted = this.formatCloudApiError(errJson || { error: { message: errText || 'Failed to download media' } });
+            const formatted = this.formatCloudApiError(config, errJson || { error: { message: errText || 'Failed to download media' } });
             throw new common_1.HttpException(formatted, common_1.HttpStatus.BAD_GATEWAY);
         }
         const bodyStream = fileResponse.body;
         if (!bodyStream) {
             throw new common_1.HttpException({ success: false, error: 'Media download returned empty body' }, common_1.HttpStatus.BAD_GATEWAY);
         }
-        // Node fetch returns a web ReadableStream; convert it to Node Readable.
         const stream = stream_1.Readable.fromWeb(bodyStream);
         const contentType = fileResponse.headers.get('content-type') ||
             String(infoData?.mime_type || '') ||
@@ -371,11 +384,14 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
     }
     async healthCheck() {
         try {
-            if (this.cloudAccessToken && this.cloudPhoneNumberId) {
+            const config = await this.getConfig().catch(() => null);
+            if (!config) {
+                return { status: 'WhatsApp not configured' };
+            }
+            if (config.cloudAccessToken && config.cloudPhoneNumberId) {
                 return { status: 'Cloud API configured' };
             }
-            const accountSid = this.configService.get('TWILIO_ACCOUNT_SID');
-            if (!accountSid) {
+            if (!config.twilioAccountSid) {
                 return { status: 'Twilio not configured' };
             }
             return { status: 'Twilio connection is healthy' };
@@ -387,10 +403,9 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
     }
     async sendTemplateMessage(phoneNumber, templateName, variables) {
         try {
+            const config = await this.getConfig();
             const cleanPhone = this.normalizePhoneNumber(phoneNumber);
-            // 1. Find or create contact
             const contact = await this.contactsService.findOrCreateByPhone(cleanPhone);
-            // 2. Find or create conversation
             let conversation = null;
             const conversations = await this.conversationsService.findByContact(contact.id);
             if (conversations && conversations.length > 0) {
@@ -405,18 +420,16 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
             let content = templateName;
             let messageType = 'text';
             let whatsappMessageId = undefined;
-            if (this.cloudAccessToken && this.cloudPhoneNumberId) {
+            if (config.cloudAccessToken && config.cloudPhoneNumberId) {
                 const parameters = this.normalizeTemplateVariables(variables);
-                sendResult = await this.sendCloudTemplateMessage(cleanPhone, templateName, parameters);
+                sendResult = await this.sendCloudTemplateMessage(config, cleanPhone, templateName, parameters);
                 whatsappMessageId = sendResult.whatsapp_message_id;
-                // Compose a readable content for local DB (for UI display)
                 if (parameters.length > 0) {
                     content = `${templateName} ${parameters.join(' ')}`;
                 }
                 messageType = 'template';
             }
             else {
-                // Fallback (Twilio o no configurado): se envía como texto plano.
                 let params = this.normalizeTemplateVariables(variables);
                 if (params.length > 0) {
                     content = `${templateName} ${params.join(' ')}`;
@@ -425,11 +438,10 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
                 whatsappMessageId = sendResult.whatsapp_message_id;
                 messageType = 'text';
             }
-            // 3. Register message in local DB
             await this.messagesService.create({
                 conversation_id: conversation.id,
                 sender_type: 'agent',
-                sender_id: null, // Optionally set to the user ID if available
+                sender_id: null,
                 content,
                 message_type: messageType,
                 whatsapp_message_id: whatsappMessageId,
@@ -454,67 +466,21 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
             return [];
         if (Array.isArray(variables))
             return variables.map(v => String(v));
-        // Si es objeto, devolver los valores en orden de las claves numéricas
         if (typeof variables === 'object') {
-            // Si es un objeto tipo {"1": "Dalia", "2": "Kit Kat"}, devolver los valores en orden
             return Object.keys(variables)
                 .sort((a, b) => Number(a) - Number(b))
                 .map(k => String(variables[k]));
         }
         return [];
     }
-    async sendCloudTextMessage(cleanPhone, message) {
-        // Usar Twilio SDK para enviar texto plano si está configurado
-        if (this.twilioClient && this.twilioPhoneNumber) {
-            try {
-                const response = await this.twilioClient.messages.create({
-                    from: `whatsapp:${this.twilioPhoneNumber}`,
-                    to: `whatsapp:+${cleanPhone}`,
-                    body: message,
-                });
-                return {
-                    success: true,
-                    whatsapp_message_id: response.sid,
-                };
-            }
-            catch (error) {
-                return {
-                    success: false,
-                    error: error.message || 'Failed to send message via Twilio',
-                };
-            }
-        }
-        // Si no hay Twilio, usar Cloud API (fetch)
-        const response = await fetch(`https://graph.facebook.com/v19.0/${this.cloudPhoneNumberId}/messages`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${this.cloudAccessToken}`,
-            },
-            body: JSON.stringify({
-                messaging_product: 'whatsapp',
-                to: cleanPhone,
-                type: 'text',
-                text: { body: message },
-            }),
-        });
-        const data = await response.json();
-        if (!response.ok) {
-            return this.formatCloudApiError(data);
-        }
-        return {
-            success: true,
-            whatsapp_message_id: data?.messages?.[0]?.id,
-        };
-    }
-    async sendCloudTemplateMessage(cleanPhone, templateName, parameters) {
+    async sendCloudTemplateMessage(config, cleanPhone, templateName, parameters) {
         const body = {
             messaging_product: 'whatsapp',
             to: cleanPhone,
             type: 'template',
             template: {
                 name: templateName,
-                language: { code: this.cloudTemplateLanguage || 'es' },
+                language: { code: config.cloudTemplateLanguage || 'es' },
                 components: [
                     {
                         type: 'body',
@@ -523,19 +489,19 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
                 ],
             },
         };
-        const response = await fetch(`https://graph.facebook.com/v19.0/${this.cloudPhoneNumberId}/messages`, {
+        const response = await fetch(`https://graph.facebook.com/v19.0/${config.cloudPhoneNumberId}/messages`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${this.cloudAccessToken}`,
+                Authorization: `Bearer ${config.cloudAccessToken}`,
             },
             body: JSON.stringify(body),
         });
         const data = await response.json();
         if (!response.ok) {
-            return this.formatCloudApiError(data, {
+            return this.formatCloudApiError(config, data, {
                 templateName,
-                language: this.cloudTemplateLanguage,
+                language: config.cloudTemplateLanguage,
             });
         }
         return {
@@ -543,7 +509,7 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
             whatsapp_message_id: data?.messages?.[0]?.id,
         };
     }
-    async uploadCloudMedia(input) {
+    async uploadCloudMedia(config, input) {
         const mimeType = input.mimeType || 'application/octet-stream';
         const filename = input.filename || 'file';
         const FormDataAny = globalThis.FormData;
@@ -558,16 +524,16 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
         const form = new FormDataAny();
         form.append('messaging_product', 'whatsapp');
         form.append('file', new BlobAny([input.fileBuffer], { type: mimeType }), filename);
-        const response = await fetch(`https://graph.facebook.com/v19.0/${this.cloudPhoneNumberId}/media`, {
+        const response = await fetch(`https://graph.facebook.com/v19.0/${config.cloudPhoneNumberId}/media`, {
             method: 'POST',
             headers: {
-                Authorization: `Bearer ${this.cloudAccessToken}`,
+                Authorization: `Bearer ${config.cloudAccessToken}`,
             },
             body: form,
         });
         const data = await response.json();
         if (!response.ok) {
-            return this.formatCloudApiError(data);
+            return this.formatCloudApiError(config, data);
         }
         const mediaId = String(data?.id || '');
         if (!mediaId) {
@@ -575,7 +541,7 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
         }
         return { success: true, media_id: mediaId };
     }
-    async sendCloudMediaMessage(cleanPhone, input) {
+    async sendCloudMediaMessage(config, cleanPhone, input) {
         const mediaPayload = { id: input.mediaId };
         if (input.type === 'image' || input.type === 'video' || input.type === 'document') {
             if (input.caption)
@@ -590,37 +556,34 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
             type: input.type,
             [input.type]: mediaPayload,
         };
-        const response = await fetch(`https://graph.facebook.com/v19.0/${this.cloudPhoneNumberId}/messages`, {
+        const response = await fetch(`https://graph.facebook.com/v19.0/${config.cloudPhoneNumberId}/messages`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${this.cloudAccessToken}`,
+                Authorization: `Bearer ${config.cloudAccessToken}`,
             },
             body: JSON.stringify(body),
         });
         const data = await response.json();
         if (!response.ok) {
-            return this.formatCloudApiError(data);
+            return this.formatCloudApiError(config, data);
         }
         return {
             success: true,
             whatsapp_message_id: data?.messages?.[0]?.id,
         };
     }
-    formatCloudApiError(data, context) {
+    formatCloudApiError(config, data, context) {
         const errorCode = Number(data?.error?.code);
         const errorMessage = data?.error?.message || 'Failed to send message via Cloud API';
         const errorDetails = data?.error?.error_data?.details;
         const errorType = data?.error?.type;
-        // Dev-mode restriction
         const isNotAllowedList = errorCode === 131030 ||
             /not in allowed list/i.test(String(errorMessage)) ||
             /131030/.test(String(errorMessage));
-        // Out of 24h window / requires template
         const isRequiresTemplate = errorCode === 470 ||
             /template/i.test(String(errorMessage)) ||
             /outside the 24/i.test(String(errorMessage));
-        // Misconfiguration: using WABA ID where Phone Number ID is required
         const isUnsupportedPostRequest = errorCode === 100 && /Unsupported post request/i.test(String(errorMessage));
         let hint;
         if (isNotAllowedList) {
@@ -635,10 +598,10 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
             }
         }
         else if (isUnsupportedPostRequest) {
-            const maybeUsingWabaAsPhoneId = Boolean(this.cloudWabaId) && this.cloudPhoneNumberId === this.cloudWabaId;
+            const maybeUsingWabaAsPhoneId = Boolean(config.cloudWabaId) && config.cloudPhoneNumberId === config.cloudWabaId;
             hint = maybeUsingWabaAsPhoneId
-                ? 'Parece que configuraste WHATSAPP_PHONE_NUMBER_ID con el WABA ID. Para enviar mensajes debes usar el Phone Number ID (Identificador de número de teléfono) del panel de WhatsApp > API Setup. Actualiza la variable en Railway y reinicia el servicio.'
-                : 'Error 100 (Unsupported post request). Verifica que WHATSAPP_PHONE_NUMBER_ID sea el Phone Number ID (no el WABA ID) y que el access token tenga permisos whatsapp_business_messaging + whatsapp_business_management para esa cuenta.';
+                ? 'Parece que configuraste el Phone Number ID con el WABA ID. Para enviar mensajes debes usar el Phone Number ID (Identificador de número de teléfono) del panel de WhatsApp > API Setup.'
+                : 'Error 100 (Unsupported post request). Verifica que el Phone Number ID sea el correcto (no el WABA ID) y que el access token tenga permisos whatsapp_business_messaging + whatsapp_business_management para esa cuenta.';
         }
         const finalMessageParts = [errorMessage];
         if (errorDetails)
@@ -654,10 +617,12 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
     }
     async getMessageStatus(messageId) {
         try {
-            if (!this.twilioClient) {
+            const config = await this.getConfig();
+            const twilioClient = this.buildTwilioClient(config);
+            if (!twilioClient) {
                 return { status: 'unknown' };
             }
-            const message = await this.twilioClient.messages(messageId).fetch();
+            const message = await twilioClient.messages(messageId).fetch();
             return { status: message.status };
         }
         catch (error) {
@@ -667,10 +632,12 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
     }
     async getPhoneNumbers() {
         try {
-            if (!this.twilioClient) {
+            const config = await this.getConfig();
+            const twilioClient = this.buildTwilioClient(config);
+            if (!twilioClient) {
                 return [];
             }
-            const phoneNumbers = await this.twilioClient.incomingPhoneNumbers.list();
+            const phoneNumbers = await twilioClient.incomingPhoneNumbers.list();
             return phoneNumbers;
         }
         catch (error) {
@@ -771,14 +738,13 @@ let WhatsappService = WhatsappService_1 = class WhatsappService {
         };
     }
     normalizePhoneNumber(value) {
-        // Usar import estándar
         return (0, phone_1.normalizePhoneNumber)(value);
     }
 };
 exports.WhatsappService = WhatsappService;
 exports.WhatsappService = WhatsappService = WhatsappService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [config_1.ConfigService,
+    __metadata("design:paramtypes", [whatsapp_integrations_service_1.WhatsappIntegrationsService,
         contacts_service_1.ContactsService,
         conversations_service_1.ConversationsService,
         messages_service_1.MessagesService])

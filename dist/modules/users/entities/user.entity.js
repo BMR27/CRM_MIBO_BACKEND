@@ -15,6 +15,7 @@ const conversation_entity_1 = require("../../conversations/entities/conversation
 const message_entity_1 = require("../../messages/entities/message.entity");
 const macro_entity_1 = require("../../macros/entities/macro.entity");
 const role_entity_1 = require("../../roles/entities/role.entity");
+const tenant_entity_1 = require("../../tenants/entities/tenant.entity");
 let User = class User {
 };
 exports.User = User;
@@ -23,7 +24,16 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'varchar', length: 255, unique: true }),
+    (0, typeorm_1.Column)({ type: 'uuid' }),
+    __metadata("design:type", String)
+], User.prototype, "tenant_id", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => tenant_entity_1.Tenant, (tenant) => tenant.users),
+    (0, typeorm_1.JoinColumn)({ name: 'tenant_id' }),
+    __metadata("design:type", tenant_entity_1.Tenant)
+], User.prototype, "tenant", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 255 }),
     __metadata("design:type", String)
 ], User.prototype, "email", void 0);
 __decorate([

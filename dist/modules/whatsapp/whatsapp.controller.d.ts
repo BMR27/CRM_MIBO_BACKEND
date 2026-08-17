@@ -1,25 +1,19 @@
 import { StreamableFile } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { WhatsappService } from './whatsapp.service';
+import { WhatsappIntegrationsService } from './whatsapp-integrations.service';
 import type { Response } from 'express';
 export declare class WhatsappController {
     private whatsappService;
-    private configService;
-    constructor(whatsappService: WhatsappService, configService: ConfigService);
+    private integrationsService;
+    constructor(whatsappService: WhatsappService, integrationsService: WhatsappIntegrationsService);
     /**
      * Webhook para recibir mensajes desde Twilio
      */
     verifyWebhook(mode: string, token: string, challenge: string): Promise<string>;
     handleWebhook(body: any, res: Response): Promise<void>;
-    /**
-     * Health check - Verificar conexión con Twilio
-     */
     healthCheck(): Promise<{
         status: string;
     }>;
-    /**
-     * Enviar mensaje de texto por WhatsApp
-     */
     sendMessage(body: {
         phone_number: string;
         message: string;
@@ -30,9 +24,6 @@ export declare class WhatsappController {
         error_code?: number;
         hint?: string;
     }>;
-    /**
-     * Enviar mensaje con plantilla
-     */
     sendTemplate(body: {
         phone_number: string;
         template_name: string;
@@ -44,9 +35,6 @@ export declare class WhatsappController {
         error_code?: number;
         hint?: string;
     }>;
-    /**
-     * Enviar mensaje con media (Cloud API)
-     */
     sendMedia(file: any, body: {
         phone_number: string;
         type: 'image' | 'document' | 'audio' | 'video' | 'sticker';
@@ -60,19 +48,27 @@ export declare class WhatsappController {
         error_code?: number;
         hint?: string;
     }>;
-    /**
-     * Descargar/visualizar media desde WhatsApp Cloud API (proxy)
-     */
     downloadMedia(mediaId: string, filename: string | undefined, res: Response): Promise<StreamableFile>;
-    /**
-     * Obtener estado de un mensaje
-     */
     getMessageStatus(messageId: string): Promise<{
         status: string;
     }>;
-    /**
-     * Obtener números de teléfono disponibles
-     */
     getPhoneNumbers(): Promise<any[]>;
+    getIntegration(req: any): Promise<{
+        provider: "twilio" | "cloud_api";
+        twilio_account_sid: string;
+        twilio_whatsapp_number: string;
+        cloud_phone_number_id: string;
+        cloud_waba_id: string;
+        cloud_template_language: string;
+        verify_token: string;
+        is_active: boolean;
+        has_twilio_auth_token: boolean;
+        has_cloud_access_token: boolean;
+    }>;
+    saveIntegration(req: any, body: any): Promise<{
+        provider: "twilio" | "cloud_api";
+        verify_token: string;
+        is_active: boolean;
+    }>;
 }
 //# sourceMappingURL=whatsapp.controller.d.ts.map

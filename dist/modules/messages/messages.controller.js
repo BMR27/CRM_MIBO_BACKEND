@@ -19,6 +19,7 @@ const create_message_dto_1 = require("./dto/create-message.dto");
 const update_message_dto_1 = require("./dto/update-message.dto");
 const messages_markRead_1 = require("./messages.markRead");
 const swagger_1 = require("@nestjs/swagger");
+const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 let MessagesController = class MessagesController {
     constructor(messagesService, messagesMarkReadService) {
         this.messagesService = messagesService;
@@ -113,6 +114,8 @@ __decorate([
 ], MessagesController.prototype, "markConversationMessagesAsRead", null);
 exports.MessagesController = MessagesController = __decorate([
     (0, swagger_1.ApiTags)('Messages - Mensajes'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('messages'),
     __metadata("design:paramtypes", [messages_service_1.MessagesService,
         messages_markRead_1.MessagesMarkReadService])

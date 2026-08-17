@@ -5,6 +5,7 @@ import { ConversationTag } from '../../conversation-tags/entities/conversation-t
 export declare class Conversation {
     channel: string;
     id: string;
+    tenant_id: string;
     contact_id: string;
     assigned_agent_id: string;
     status: 'active' | 'paused' | 'resolved';
