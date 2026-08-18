@@ -105,7 +105,7 @@ exports.ContactsController = ContactsController = __decorate([
     (0, swagger_1.ApiTags)('Contacts - Contactos'),
     (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Controller)('api/contacts'),
+    (0, common_1.Controller)('contacts'),
     __metadata("design:paramtypes", [contacts_service_1.ContactsService])
 ], ContactsController);
 //# sourceMappingURL=contacts.controller.js.map

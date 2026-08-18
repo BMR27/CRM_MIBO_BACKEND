@@ -102,7 +102,7 @@ exports.OrdersController = OrdersController = __decorate([
     (0, swagger_1.ApiTags)('Orders - Órdenes'),
     (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Controller)('api/orders'),
+    (0, common_1.Controller)('orders'),
     __metadata("design:paramtypes", [orders_service_1.OrdersService])
 ], OrdersController);
 //# sourceMappingURL=orders.controller.js.map

@@ -18,7 +18,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @ApiTags('Macros - Respuestas rápidas')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('api/macros')
+@Controller('macros')
 export class MacrosController {
   constructor(private readonly macrosService: MacrosService) {}
 

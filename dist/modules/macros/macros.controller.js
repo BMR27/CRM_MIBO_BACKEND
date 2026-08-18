@@ -101,7 +101,7 @@ exports.MacrosController = MacrosController = __decorate([
     (0, swagger_1.ApiTags)('Macros - Respuestas rápidas'),
     (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Controller)('api/macros'),
+    (0, common_1.Controller)('macros'),
     __metadata("design:paramtypes", [macros_service_1.MacrosService])
 ], MacrosController);
 //# sourceMappingURL=macros.controller.js.map

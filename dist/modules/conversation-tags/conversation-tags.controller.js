@@ -86,7 +86,7 @@ exports.ConversationTagsController = ConversationTagsController = __decorate([
     (0, swagger_1.ApiTags)('Conversation Tags - Etiquetas'),
     (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Controller)('api/conversation-tags'),
+    (0, common_1.Controller)('conversation-tags'),
     __metadata("design:paramtypes", [conversation_tags_service_1.ConversationTagsService])
 ], ConversationTagsController);
 //# sourceMappingURL=conversation-tags.controller.js.map
