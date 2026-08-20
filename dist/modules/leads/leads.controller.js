@@ -82,8 +82,25 @@ __decorate([
     (0, common_1.Post)('leads/:id/convert'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiBearerAuth)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Convertir un lead en contacto del CRM' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Convertir un lead en contacto del CRM',
+        description: 'Crea (o reutiliza) un Contact a partir del phone_number del lead y lo vincula via contact_id. ' +
+            'Esto NO crea una orden: las órdenes son un recurso aparte que se crea explícitamente con ' +
+            'POST /api/orders usando el contact_id devuelto aquí.',
+    }),
     (0, swagger_1.ApiParam)({ name: 'id', description: 'ID del lead' }),
+    (0, swagger_1.ApiResponse)({
+        status: 201,
+        description: 'Lead convertido (o ya estaba convertido)',
+        schema: {
+            type: 'object',
+            properties: {
+                lead: { type: 'object', description: 'Lead actualizado, status="converted", incluye contact_id' },
+                contact: { type: 'object', description: 'Contact creado o reutilizado' },
+                alreadyConverted: { type: 'boolean', description: 'true si el lead ya tenía contact_id previamente' },
+            },
+        },
+    }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),

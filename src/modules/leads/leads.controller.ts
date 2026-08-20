@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards, ValidationPipe } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
-import { ApiBearerAuth, ApiBody, ApiHeader, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiHeader, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { LeadsService } from './leads.service';
 import { CreatePublicLeadDto } from './dto/create-lead.dto';
 import { UpdateLeadDto } from './dto/update-lead.dto';
@@ -47,8 +47,26 @@ export class LeadsController {
   @Post('leads/:id/convert')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Convertir un lead en contacto del CRM' })
+  @ApiOperation({
+    summary: 'Convertir un lead en contacto del CRM',
+    description:
+      'Crea (o reutiliza) un Contact a partir del phone_number del lead y lo vincula via contact_id. ' +
+      'Esto NO crea una orden: las órdenes son un recurso aparte que se crea explícitamente con ' +
+      'POST /api/orders usando el contact_id devuelto aquí.',
+  })
   @ApiParam({ name: 'id', description: 'ID del lead' })
+  @ApiResponse({
+    status: 201,
+    description: 'Lead convertido (o ya estaba convertido)',
+    schema: {
+      type: 'object',
+      properties: {
+        lead: { type: 'object', description: 'Lead actualizado, status="converted", incluye contact_id' },
+        contact: { type: 'object', description: 'Contact creado o reutilizado' },
+        alreadyConverted: { type: 'boolean', description: 'true si el lead ya tenía contact_id previamente' },
+      },
+    },
+  })
   async convert(@Param('id') id: string) {
     return this.leadsService.convertToContact(id);
   }
