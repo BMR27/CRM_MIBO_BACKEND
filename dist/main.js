@@ -15,7 +15,9 @@ async function bootstrap() {
         origin: [
             'http://localhost:3000',
             'http://localhost:3002',
+            'http://localhost:3005',
             'https://crmmibofrontend-production.up.railway.app',
+            'https://crmmibofrontend-production-ba41.up.railway.app',
         ],
         methods: 'GET,POST,PATCH,DELETE,OPTIONS',
         credentials: true,
