@@ -9,6 +9,8 @@ export declare class Tenant {
     legal_name: string;
     status: 'trial' | 'active' | 'suspended' | 'cancelled';
     plan: string;
+    bulk_messaging_enabled: boolean;
+    wa_templates_enabled: boolean;
     created_at: Date;
     updated_at: Date;
     users: User[];

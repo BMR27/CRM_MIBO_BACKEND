@@ -35,6 +35,12 @@ let TenantsController = class TenantsController {
         }
         return this.tenantsService.renameTenant(req.user.tenantId, name);
     }
+    async updateFeatures(req, body) {
+        if (req.user.role !== 'admin') {
+            throw new common_1.ForbiddenException('Solo un administrador puede cambiar las funciones habilitadas del espacio');
+        }
+        return this.tenantsService.updateFeatureFlags(req.user.tenantId, body);
+    }
 };
 exports.TenantsController = TenantsController;
 __decorate([
@@ -55,6 +61,24 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], TenantsController.prototype, "updateMe", null);
+__decorate([
+    (0, common_1.Patch)('me/features'),
+    (0, swagger_1.ApiOperation)({ summary: 'Habilitar/deshabilitar mensajería masiva y plantillas de WhatsApp para el espacio (solo admin)' }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: 'object',
+            properties: {
+                bulk_messaging_enabled: { type: 'boolean' },
+                wa_templates_enabled: { type: 'boolean' },
+            },
+        },
+    }),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], TenantsController.prototype, "updateFeatures", null);
 exports.TenantsController = TenantsController = __decorate([
     (0, swagger_1.ApiTags)('Tenants - Espacio de trabajo'),
     (0, swagger_1.ApiBearerAuth)(),

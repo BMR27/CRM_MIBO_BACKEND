@@ -17,6 +17,7 @@ const common_1 = require("@nestjs/common");
 const twilio_service_1 = require("./twilio.service");
 const messages_service_1 = require("../modules/messages/messages.service");
 const jwt_auth_guard_1 = require("../modules/auth/guards/jwt-auth.guard");
+const tenant_feature_guard_1 = require("../common/tenant/tenant-feature.guard");
 const swagger_1 = require("@nestjs/swagger");
 let TwilioController = class TwilioController {
     constructor(twilioService, messagesService) {
@@ -135,7 +136,8 @@ __decorate([
 ], TwilioController.prototype, "getApprovedWATemplates", null);
 __decorate([
     (0, common_1.Post)('send-wa-template'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, tenant_feature_guard_1.TenantFeatureGuard),
+    (0, tenant_feature_guard_1.RequireTenantFeature)('wa_templates_enabled'),
     (0, swagger_1.ApiOperation)({ summary: 'Enviar plantilla WhatsApp por Twilio' }),
     (0, swagger_1.ApiBody)({
         schema: {

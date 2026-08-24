@@ -30,4 +30,25 @@ export class TenantsController {
     }
     return this.tenantsService.renameTenant(req.user.tenantId, name);
   }
+
+  @Patch('me/features')
+  @ApiOperation({ summary: 'Habilitar/deshabilitar mensajería masiva y plantillas de WhatsApp para el espacio (solo admin)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        bulk_messaging_enabled: { type: 'boolean' },
+        wa_templates_enabled: { type: 'boolean' },
+      },
+    },
+  })
+  async updateFeatures(
+    @Request() req,
+    @Body() body: { bulk_messaging_enabled?: boolean; wa_templates_enabled?: boolean },
+  ) {
+    if (req.user.role !== 'admin') {
+      throw new ForbiddenException('Solo un administrador puede cambiar las funciones habilitadas del espacio');
+    }
+    return this.tenantsService.updateFeatureFlags(req.user.tenantId, body);
+  }
 }

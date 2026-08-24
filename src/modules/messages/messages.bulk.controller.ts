@@ -16,6 +16,7 @@ const CUSTOMER_SERVICE_TEMPLATE_BODY =
 
 import { Controller, Post, UploadedFile, UseInterceptors, Inject, Body, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { TenantFeatureGuard, RequireTenantFeature } from '../../common/tenant/tenant-feature.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as XLSX from 'xlsx';
 import { TwilioService } from '../../twilio/twilio.service';
@@ -36,7 +37,8 @@ export class MessagesBulkController {
   ) {}
 
   @Post('bulk')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, TenantFeatureGuard)
+  @RequireTenantFeature('bulk_messaging_enabled')
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({
     summary: 'Enviar mensajes masivos por WhatsApp',

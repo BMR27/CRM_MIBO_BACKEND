@@ -14,5 +14,9 @@ export declare class TenantsService {
         legal_name?: string;
     }, manager: EntityManager): Promise<Tenant>;
     renameTenant(id: string, name: string): Promise<Tenant>;
+    updateFeatureFlags(id: string, flags: {
+        bulk_messaging_enabled?: boolean;
+        wa_templates_enabled?: boolean;
+    }): Promise<Tenant>;
 }
 //# sourceMappingURL=tenants.service.d.ts.map

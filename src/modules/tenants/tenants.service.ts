@@ -66,4 +66,19 @@ export class TenantsService {
     await this.tenantsRepository.update(id, { name });
     return this.findById(id);
   }
+
+  async updateFeatureFlags(
+    id: string,
+    flags: { bulk_messaging_enabled?: boolean; wa_templates_enabled?: boolean },
+  ): Promise<Tenant> {
+    const update: Partial<Tenant> = {};
+    if (typeof flags.bulk_messaging_enabled === 'boolean') {
+      update.bulk_messaging_enabled = flags.bulk_messaging_enabled;
+    }
+    if (typeof flags.wa_templates_enabled === 'boolean') {
+      update.wa_templates_enabled = flags.wa_templates_enabled;
+    }
+    await this.tenantsRepository.update(id, update);
+    return this.findById(id);
+  }
 }

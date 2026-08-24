@@ -60,6 +60,14 @@ __decorate([
     __metadata("design:type", String)
 ], Tenant.prototype, "plan", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', default: false }),
+    __metadata("design:type", Boolean)
+], Tenant.prototype, "bulk_messaging_enabled", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', default: false }),
+    __metadata("design:type", Boolean)
+], Tenant.prototype, "wa_templates_enabled", void 0);
+__decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)
 ], Tenant.prototype, "created_at", void 0);

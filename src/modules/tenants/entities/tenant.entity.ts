@@ -45,6 +45,12 @@ export class Tenant {
   @Column({ type: 'varchar', length: 50, default: 'free' })
   plan: string;
 
+  @Column({ type: 'boolean', default: false })
+  bulk_messaging_enabled: boolean;
+
+  @Column({ type: 'boolean', default: false })
+  wa_templates_enabled: boolean;
+
   @CreateDateColumn()
   created_at: Date;
 

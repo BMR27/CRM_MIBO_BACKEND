@@ -12,10 +12,11 @@ import { TwilioModule } from '../../twilio/twilio.module';
 import { forwardRef } from '@nestjs/common';
 import { ContactsModule } from '../contacts/contacts.module';
 import { ConversationsModule } from '../conversations/conversations.module';
+import { TenantsModule } from '../tenants/tenants.module';
 // ...existing code...
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Message]), forwardRef(() => TwilioModule), forwardRef(() => ContactsModule), forwardRef(() => ConversationsModule)],
+  imports: [TypeOrmModule.forFeature([Message]), forwardRef(() => TwilioModule), forwardRef(() => ContactsModule), forwardRef(() => ConversationsModule), TenantsModule],
   providers: [
     MessagesService,
     MessagesMarkReadService,

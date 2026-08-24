@@ -3,6 +3,7 @@ import { Body, Controller, Post, Options, Get, Param, Query, Res, UseGuards } fr
 import { TwilioService } from './twilio.service';
 import { MessagesService } from '../modules/messages/messages.service';
 import { JwtAuthGuard } from '../modules/auth/guards/jwt-auth.guard';
+import { TenantFeatureGuard, RequireTenantFeature } from '../common/tenant/tenant-feature.guard';
 import { Response } from 'express';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
@@ -43,7 +44,8 @@ export class TwilioController {
 
 
   @Post('send-wa-template')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, TenantFeatureGuard)
+  @RequireTenantFeature('wa_templates_enabled')
   @ApiOperation({ summary: 'Enviar plantilla WhatsApp por Twilio' })
   @ApiBody({
     schema: {

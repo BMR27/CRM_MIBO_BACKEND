@@ -57,6 +57,7 @@ const CUSTOMER_SERVICE_TEMPLATE_SID = 'HXf9420e6e4ff17a94fe3dfaceb7aa657b';
 const CUSTOMER_SERVICE_TEMPLATE_BODY = '¡Hola, {{1}}! Mi nombre es {{2}} y lo contacto del departamento de atención al cliente del producto {{3}}. ¡Estoy a disposición para asistir!';
 const common_1 = require("@nestjs/common");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const tenant_feature_guard_1 = require("../../common/tenant/tenant-feature.guard");
 const platform_express_1 = require("@nestjs/platform-express");
 const XLSX = __importStar(require("xlsx"));
 const twilio_service_1 = require("../../twilio/twilio.service");
@@ -186,7 +187,8 @@ let MessagesBulkController = class MessagesBulkController {
 exports.MessagesBulkController = MessagesBulkController;
 __decorate([
     (0, common_1.Post)('bulk'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, tenant_feature_guard_1.TenantFeatureGuard),
+    (0, tenant_feature_guard_1.RequireTenantFeature)('bulk_messaging_enabled'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file')),
     (0, swagger_1.ApiOperation)({
         summary: 'Enviar mensajes masivos por WhatsApp',

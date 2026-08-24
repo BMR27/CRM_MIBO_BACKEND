@@ -21,13 +21,14 @@ const twilio_module_1 = require("../../twilio/twilio.module");
 const common_2 = require("@nestjs/common");
 const contacts_module_1 = require("../contacts/contacts.module");
 const conversations_module_1 = require("../conversations/conversations.module");
+const tenants_module_1 = require("../tenants/tenants.module");
 // ...existing code...
 let MessagesModule = class MessagesModule {
 };
 exports.MessagesModule = MessagesModule;
 exports.MessagesModule = MessagesModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([message_entity_1.Message]), (0, common_2.forwardRef)(() => twilio_module_1.TwilioModule), (0, common_2.forwardRef)(() => contacts_module_1.ContactsModule), (0, common_2.forwardRef)(() => conversations_module_1.ConversationsModule)],
+        imports: [typeorm_1.TypeOrmModule.forFeature([message_entity_1.Message]), (0, common_2.forwardRef)(() => twilio_module_1.TwilioModule), (0, common_2.forwardRef)(() => contacts_module_1.ContactsModule), (0, common_2.forwardRef)(() => conversations_module_1.ConversationsModule), tenants_module_1.TenantsModule],
         providers: [
             messages_service_1.MessagesService,
             messages_markRead_1.MessagesMarkReadService,
