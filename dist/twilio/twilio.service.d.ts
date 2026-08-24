@@ -1,8 +1,7 @@
 import { WhatsappIntegrationsService } from '../modules/whatsapp/whatsapp-integrations.service';
 export declare class TwilioService {
     private whatsappIntegrationsService;
-    private readonly allowedWATemplateName;
-    private readonly allowedWATemplateSid;
+    private readonly allowedWATemplates;
     constructor(whatsappIntegrationsService: WhatsappIntegrationsService);
     private getCredentials;
     private getClient;

@@ -21,8 +21,10 @@ const whatsapp_integrations_service_1 = require("../modules/whatsapp/whatsapp-in
 let TwilioService = class TwilioService {
     constructor(whatsappIntegrationsService) {
         this.whatsappIntegrationsService = whatsappIntegrationsService;
-        this.allowedWATemplateName = 'customer_service_intro_v1';
-        this.allowedWATemplateSid = 'HXf9420e6e4ff17a94fe3dfaceb7aa657b';
+        this.allowedWATemplates = [
+            { name: 'customer_service_intro_v1', sid: 'HXf9420e6e4ff17a94fe3dfaceb7aa657b' },
+            { name: 'pedido_enviado_v1', sid: 'HX36751a5be358338dd5082fa394b515f5' },
+        ];
     }
     async getCredentials() {
         const tenantId = tenant_context_1.TenantContext.getTenantId();
@@ -57,7 +59,7 @@ let TwilioService = class TwilioService {
             return templates.filter((template) => {
                 const name = String(template?.friendly_name || template?.name || '').trim();
                 const sid = String(template?.sid || '').trim();
-                return name === this.allowedWATemplateName || sid === this.allowedWATemplateSid;
+                return this.allowedWATemplates.some((allowed) => name === allowed.name || sid === allowed.sid);
             });
         }
         catch (err) {

@@ -6,8 +6,10 @@ import { WhatsappIntegrationsService } from '../modules/whatsapp/whatsapp-integr
 
 @Injectable()
 export class TwilioService {
-  private readonly allowedWATemplateName = 'customer_service_intro_v1';
-  private readonly allowedWATemplateSid = 'HXf9420e6e4ff17a94fe3dfaceb7aa657b';
+  private readonly allowedWATemplates = [
+    { name: 'customer_service_intro_v1', sid: 'HXf9420e6e4ff17a94fe3dfaceb7aa657b' },
+    { name: 'pedido_enviado_v1', sid: 'HX36751a5be358338dd5082fa394b515f5' },
+  ];
 
   constructor(private whatsappIntegrationsService: WhatsappIntegrationsService) {}
 
@@ -46,7 +48,7 @@ export class TwilioService {
       return templates.filter((template: any) => {
         const name = String(template?.friendly_name || template?.name || '').trim();
         const sid = String(template?.sid || '').trim();
-        return name === this.allowedWATemplateName || sid === this.allowedWATemplateSid;
+        return this.allowedWATemplates.some((allowed) => name === allowed.name || sid === allowed.sid);
       });
     } catch (err: any) {
       console.error('Twilio API error:', err?.response?.data || err?.message || err);
