@@ -52,6 +52,9 @@ export class User {
   })
   status: 'available' | 'busy' | 'offline';
 
+  @Column({ type: 'boolean', default: false })
+  is_platform_admin: boolean;
+
   @CreateDateColumn()
   created_at: Date;
 

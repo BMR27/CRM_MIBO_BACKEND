@@ -4,6 +4,7 @@ export declare class TenantsService {
     private tenantsRepository;
     constructor(tenantsRepository: Repository<Tenant>);
     findById(id: string): Promise<Tenant | null>;
+    findAll(): Promise<Tenant[]>;
     findBySlug(slug: string): Promise<Tenant | null>;
     generateUniqueSlug(name: string, manager?: EntityManager): Promise<string>;
     createTenant(data: {

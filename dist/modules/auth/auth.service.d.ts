@@ -4,6 +4,6 @@ export declare function normalizeRole(name?: string): 'admin' | 'supervisor' | '
 export declare class AuthService {
     private jwtService;
     constructor(jwtService: JwtService);
-    signToken(user: Pick<User, 'id' | 'email' | 'role'>, tenantId: string): string;
+    signToken(user: Pick<User, 'id' | 'email' | 'role'>, tenantId: string, isPlatformAdmin?: boolean): string;
 }
 //# sourceMappingURL=auth.service.d.ts.map

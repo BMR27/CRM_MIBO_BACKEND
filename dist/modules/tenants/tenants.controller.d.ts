@@ -2,6 +2,7 @@ import { TenantsService } from './tenants.service';
 export declare class TenantsController {
     private tenantsService;
     constructor(tenantsService: TenantsService);
+    getAll(): Promise<import("./entities/tenant.entity").Tenant[]>;
     getMe(req: any): Promise<import("./entities/tenant.entity").Tenant>;
     updateMe(req: any, body: {
         name: string;

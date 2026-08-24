@@ -17,9 +17,13 @@ const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const tenants_service_1 = require("./tenants.service");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const platform_admin_guard_1 = require("../../common/auth/platform-admin.guard");
 let TenantsController = class TenantsController {
     constructor(tenantsService) {
         this.tenantsService = tenantsService;
+    }
+    async getAll() {
+        return this.tenantsService.findAll();
     }
     async getMe(req) {
         const tenant = await this.tenantsService.findById(req.user.tenantId);
@@ -43,6 +47,14 @@ let TenantsController = class TenantsController {
     }
 };
 exports.TenantsController = TenantsController;
+__decorate([
+    (0, common_1.Get)(),
+    (0, common_1.UseGuards)(platform_admin_guard_1.PlatformAdminGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Listar todos los espacios de trabajo (solo super-admin de plataforma)' }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], TenantsController.prototype, "getAll", null);
 __decorate([
     (0, common_1.Get)('me'),
     (0, swagger_1.ApiOperation)({ summary: 'Obtener el tenant (espacio de trabajo) del usuario autenticado' }),

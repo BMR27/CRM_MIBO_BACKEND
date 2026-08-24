@@ -33,6 +33,9 @@ let TenantsService = class TenantsService {
     async findById(id) {
         return this.tenantsRepository.findOne({ where: { id } });
     }
+    async findAll() {
+        return this.tenantsRepository.find({ order: { created_at: 'ASC' } });
+    }
     async findBySlug(slug) {
         return this.tenantsRepository.findOne({ where: { slug } });
     }

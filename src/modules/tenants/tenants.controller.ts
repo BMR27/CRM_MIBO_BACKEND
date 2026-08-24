@@ -2,6 +2,7 @@ import { BadRequestException, Body, Controller, ForbiddenException, Get, Patch, 
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { TenantsService } from './tenants.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PlatformAdminGuard } from '../../common/auth/platform-admin.guard';
 
 @ApiTags('Tenants - Espacio de trabajo')
 @ApiBearerAuth()
@@ -9,6 +10,13 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @Controller('tenants')
 export class TenantsController {
   constructor(private tenantsService: TenantsService) {}
+
+  @Get()
+  @UseGuards(PlatformAdminGuard)
+  @ApiOperation({ summary: 'Listar todos los espacios de trabajo (solo super-admin de plataforma)' })
+  async getAll() {
+    return this.tenantsService.findAll();
+  }
 
   @Get('me')
   @ApiOperation({ summary: 'Obtener el tenant (espacio de trabajo) del usuario autenticado' })

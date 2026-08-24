@@ -14,6 +14,7 @@ export declare class User {
     role: Role;
     avatar_url: string;
     status: 'available' | 'busy' | 'offline';
+    is_platform_admin: boolean;
     created_at: Date;
     updated_at: Date;
     assigned_conversations: Conversation[];

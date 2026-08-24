@@ -24,6 +24,10 @@ export class TenantsService {
     return this.tenantsRepository.findOne({ where: { id } });
   }
 
+  async findAll(): Promise<Tenant[]> {
+    return this.tenantsRepository.find({ order: { created_at: 'ASC' } });
+  }
+
   async findBySlug(slug: string): Promise<Tenant | null> {
     return this.tenantsRepository.findOne({ where: { slug } });
   }

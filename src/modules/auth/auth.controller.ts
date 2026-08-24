@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, HttpCode, BadRequestException, ForbiddenException, Inject, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, HttpCode, BadRequestException, ForbiddenException, NotFoundException, Inject, UseGuards, Request } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
@@ -10,6 +10,7 @@ import { Tenant } from '../tenants/entities/tenant.entity';
 import { Role } from '../roles/entities/role.entity';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { PlatformAdminGuard } from '../../common/auth/platform-admin.guard';
 import * as bcrypt from 'bcryptjs';
 
 @ApiTags('Auth - Autenticación')
@@ -250,6 +251,7 @@ export class AuthController {
       const token = this.authService.signToken(
         { id: user.id, email: user.email, role: user.role },
         user.tenant_id,
+        user.is_platform_admin === true,
       );
 
       return {
@@ -263,11 +265,36 @@ export class AuthController {
           role: user.role?.name || null,
           role_id: user.role_id,
           tenant_id: user.tenant_id,
+          is_platform_admin: user.is_platform_admin === true,
         },
       };
     } catch (error: any) {
       throw new BadRequestException(error.message || 'Error al iniciar sesión');
     }
+  }
+
+  @Post('impersonate/:tenantId')
+  @UseGuards(JwtAuthGuard, PlatformAdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Emitir un token para ver el detalle de otro espacio (solo super-admin de plataforma)',
+  })
+  async impersonate(@Request() req, @Param('tenantId') tenantId: string) {
+    const tenant = await this.tenantsService.findById(tenantId);
+    if (!tenant) {
+      throw new NotFoundException('El espacio indicado no existe');
+    }
+    const token = this.authService.signToken(
+      { id: req.user.id, email: req.user.email, role: { name: 'admin' } as Role },
+      tenant.id,
+      true,
+    );
+    return {
+      access_token: token,
+      token_type: 'Bearer',
+      expires_in: '7d',
+      tenant: { id: tenant.id, name: tenant.name, slug: tenant.slug },
+    };
   }
 
   @Get('me')

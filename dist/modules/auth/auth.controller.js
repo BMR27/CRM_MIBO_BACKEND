@@ -57,6 +57,7 @@ const tenants_service_1 = require("../tenants/tenants.service");
 const role_entity_1 = require("../roles/entities/role.entity");
 const auth_service_1 = require("./auth.service");
 const jwt_auth_guard_1 = require("./guards/jwt-auth.guard");
+const platform_admin_guard_1 = require("../../common/auth/platform-admin.guard");
 const bcrypt = __importStar(require("bcryptjs"));
 let AuthController = class AuthController {
     constructor(usersService, rolesService, tenantsService, authService, dataSource) {
@@ -169,7 +170,7 @@ let AuthController = class AuthController {
             if (!isValidPassword) {
                 throw new common_1.BadRequestException('Email o contraseña inválidos');
             }
-            const token = this.authService.signToken({ id: user.id, email: user.email, role: user.role }, user.tenant_id);
+            const token = this.authService.signToken({ id: user.id, email: user.email, role: user.role }, user.tenant_id, user.is_platform_admin === true);
             return {
                 access_token: token,
                 token_type: 'Bearer',
@@ -181,12 +182,26 @@ let AuthController = class AuthController {
                     role: user.role?.name || null,
                     role_id: user.role_id,
                     tenant_id: user.tenant_id,
+                    is_platform_admin: user.is_platform_admin === true,
                 },
             };
         }
         catch (error) {
             throw new common_1.BadRequestException(error.message || 'Error al iniciar sesión');
         }
+    }
+    async impersonate(req, tenantId) {
+        const tenant = await this.tenantsService.findById(tenantId);
+        if (!tenant) {
+            throw new common_1.NotFoundException('El espacio indicado no existe');
+        }
+        const token = this.authService.signToken({ id: req.user.id, email: req.user.email, role: { name: 'admin' } }, tenant.id, true);
+        return {
+            access_token: token,
+            token_type: 'Bearer',
+            expires_in: '7d',
+            tenant: { id: tenant.id, name: tenant.name, slug: tenant.slug },
+        };
     }
     async getMe(req) {
         const user = await this.usersService.findByEmailWithRole(req.user.email);
@@ -308,6 +323,19 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
+__decorate([
+    (0, common_1.Post)('impersonate/:tenantId'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, platform_admin_guard_1.PlatformAdminGuard),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Emitir un token para ver el detalle de otro espacio (solo super-admin de plataforma)',
+    }),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('tenantId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "impersonate", null);
 __decorate([
     (0, common_1.Get)('me'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

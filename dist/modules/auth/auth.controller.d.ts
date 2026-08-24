@@ -66,6 +66,17 @@ export declare class AuthController {
             role: string;
             role_id: string;
             tenant_id: string;
+            is_platform_admin: boolean;
+        };
+    }>;
+    impersonate(req: any, tenantId: string): Promise<{
+        access_token: string;
+        token_type: string;
+        expires_in: string;
+        tenant: {
+            id: string;
+            name: string;
+            slug: string;
         };
     }>;
     getMe(req: any): Promise<{

@@ -25,12 +25,13 @@ let AuthService = class AuthService {
     constructor(jwtService) {
         this.jwtService = jwtService;
     }
-    signToken(user, tenantId) {
+    signToken(user, tenantId, isPlatformAdmin = false) {
         return this.jwtService.sign({
             email: user.email,
             sub: user.id,
             role: normalizeRole(user.role?.name),
             tenantId,
+            isPlatformAdmin,
         });
     }
 };
