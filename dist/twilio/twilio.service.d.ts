@@ -3,6 +3,7 @@ export declare class TwilioService {
     private whatsappIntegrationsService;
     private readonly allowedWATemplates;
     constructor(whatsappIntegrationsService: WhatsappIntegrationsService);
+    isTemplateAllowed(sid: string): boolean;
     private getCredentials;
     private getClient;
     /**

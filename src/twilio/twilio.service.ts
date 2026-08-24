@@ -13,6 +13,11 @@ export class TwilioService {
 
   constructor(private whatsappIntegrationsService: WhatsappIntegrationsService) {}
 
+  isTemplateAllowed(sid: string): boolean {
+    const normalized = String(sid || '').trim();
+    return this.allowedWATemplates.some((allowed) => allowed.sid === normalized);
+  }
+
   private async getCredentials(): Promise<{ accountSid: string; authToken: string; whatsappFrom?: string }> {
     const tenantId = TenantContext.getTenantId();
     const config = await this.whatsappIntegrationsService.getConfigForTenant(tenantId);

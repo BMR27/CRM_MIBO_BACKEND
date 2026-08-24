@@ -26,6 +26,10 @@ let TwilioService = class TwilioService {
             { name: 'pedido_enviado_v1', sid: 'HX36751a5be358338dd5082fa394b515f5' },
         ];
     }
+    isTemplateAllowed(sid) {
+        const normalized = String(sid || '').trim();
+        return this.allowedWATemplates.some((allowed) => allowed.sid === normalized);
+    }
     async getCredentials() {
         const tenantId = tenant_context_1.TenantContext.getTenantId();
         const config = await this.whatsappIntegrationsService.getConfigForTenant(tenantId);

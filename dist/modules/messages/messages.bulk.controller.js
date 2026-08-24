@@ -46,15 +46,6 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MessagesBulkController = void 0;
-// Helper para limpiar el nombre (fuera de la clase)
-function getNombreSinNumero(nombre) {
-    if (!nombre)
-        return 'Usuario';
-    // Elimina números al inicio del nombre
-    return nombre.replace(/^\d+\s*/, '').trim();
-}
-const CUSTOMER_SERVICE_TEMPLATE_SID = 'HXf9420e6e4ff17a94fe3dfaceb7aa657b';
-const CUSTOMER_SERVICE_TEMPLATE_BODY = '¡Hola, {{1}}! Mi nombre es {{2}} y lo contacto del departamento de atención al cliente del producto {{3}}. ¡Estoy a disposición para asistir!';
 const common_1 = require("@nestjs/common");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const tenant_feature_guard_1 = require("../../common/tenant/tenant-feature.guard");
@@ -96,8 +87,19 @@ let MessagesBulkController = class MessagesBulkController {
             console.log('No contacts provided');
             return { error: 'No contacts provided' };
         }
-        // En producción solo se permite la plantilla autorizada para campañas masivas.
-        const contentSid = CUSTOMER_SERVICE_TEMPLATE_SID;
+        const contentSid = String(body?.templateSid || '').trim();
+        if (!contentSid) {
+            throw new common_1.BadRequestException('templateSid es requerido');
+        }
+        if (!this.twilioService.isTemplateAllowed(contentSid)) {
+            throw new common_1.BadRequestException('La plantilla indicada no está permitida para envíos masivos');
+        }
+        const templateParamMap = body?.templateParamMap || {};
+        const templateParamFallbacks = body?.templateParamFallbacks || {};
+        const paramIndexes = Object.keys(templateParamMap).sort((a, b) => Number(a) - Number(b));
+        if (paramIndexes.length === 0) {
+            throw new common_1.BadRequestException('templateParamMap es requerido');
+        }
         const campaignId = String(body.campaignId || `bulk_${Date.now()}`);
         const campaignName = String(body.campaignName || 'Campaña').trim() || 'Campaña';
         const campaignCode = String(body.campaignCode || campaignId).trim() || campaignId;
@@ -107,8 +109,8 @@ let MessagesBulkController = class MessagesBulkController {
         }
         const results = [];
         for (const row of data) {
+            const to = String(row.telefono || row.PHONE_A || row.phone || row.telefono_cliente || '').trim();
             try {
-                const to = String(row.telefono || row.PHONE_A || row.phone || row.telefono_cliente || '').trim();
                 if (!to) {
                     throw new Error('Contacto sin telefono/PHONE_A');
                 }
@@ -129,16 +131,24 @@ let MessagesBulkController = class MessagesBulkController {
                 else {
                     // Asignar el agente logueado
                     const assigned_agent_id = req?.user?.id;
-                    console.log('Agente asignado a la conversación:', assigned_agent_id);
                     conversation = await this.conversationsService.create({ contact_id: contact.id, assigned_agent_id });
                 }
-                // 3. Enviar mensaje por WhatsApp
-                const cliente = String(row.CLIENTE || row.nombre || 'Usuario').trim() || 'Usuario';
-                const asesor = String(row.ASESOR || req?.user?.name || req?.user?.email || 'Agente').trim() || 'Agente';
-                const producto = String(row.PRODUCTOS_A || row.PRODUCTS_A || row.producto || '').trim();
-                const variablesToSend = [cliente, asesor, producto];
-                // Log explícito para depuración
-                console.log('Variables enviadas a Twilio:', variablesToSend);
+                // 3. Resolver variables de la plantilla en orden ({{1}}, {{2}}, ...) desde la fila o el fallback
+                const variablesToSend = [];
+                for (const idx of paramIndexes) {
+                    const campo = templateParamMap[idx];
+                    let valor = String(row[campo] ?? '').trim();
+                    if (!valor && campo === 'ASESOR') {
+                        valor = String(req?.user?.name || req?.user?.email || '').trim();
+                    }
+                    if (!valor) {
+                        valor = String(templateParamFallbacks[idx] ?? '').trim();
+                    }
+                    if (!valor) {
+                        throw new Error(`Falta el valor de ${campo} (variable {{${idx}}})`);
+                    }
+                    variablesToSend.push(valor);
+                }
                 const res = await this.twilioService.sendWhatsAppTemplate({
                     to,
                     from,
@@ -146,16 +156,11 @@ let MessagesBulkController = class MessagesBulkController {
                     variables: variablesToSend,
                 });
                 results.push({ to, status: 'sent', sid: res.sid });
-                console.log(`Mensaje enviado a ${to}: SID ${res.sid}`);
-                // 4. Registrar mensaje en la conversación usando la plantilla y parámetros
-                const mensajePlantilla = CUSTOMER_SERVICE_TEMPLATE_BODY
-                    .replace('{{1}}', cliente)
-                    .replace('{{2}}', asesor)
-                    .replace('{{3}}', producto);
+                // 4. Registrar mensaje en la conversación
                 await this.messagesService.create({
                     conversation_id: conversation.id,
                     sender_type: 'agent',
-                    content: mensajePlantilla,
+                    content: `Plantilla enviada (${contentSid}): ${variablesToSend.join(' | ')}`,
                     message_type: 'text',
                     is_from_whatsapp: false,
                     whatsapp_message_id: res.sid,
@@ -175,12 +180,9 @@ let MessagesBulkController = class MessagesBulkController {
                 });
             }
             catch (err) {
-                const errorTo = String(row.telefono || row.PHONE_A || row.phone || row.telefono_cliente || '').trim();
-                results.push({ to: errorTo, status: 'error', error: err.message });
-                console.log(`Error enviando a ${errorTo}:`, err.message);
+                results.push({ to, status: 'error', error: err.message });
             }
         }
-        console.log('Resultados de envío masivo:', results);
         return { success: true, rows: data.length, results, preview: data };
     }
 };
@@ -205,7 +207,17 @@ __decorate([
                         campaignCode: { type: 'string', example: 'CMP-20260612094500' },
                         campaignName: { type: 'string', example: 'Recuperación entregas junio' },
                         campaignNotes: { type: 'string', example: 'Segmento de pedidos pendientes' },
-                        templateSid: { type: 'string', example: CUSTOMER_SERVICE_TEMPLATE_SID },
+                        templateSid: { type: 'string', example: 'HXf9420e6e4ff17a94fe3dfaceb7aa657b' },
+                        templateParamMap: {
+                            type: 'object',
+                            description: 'Mapa índice de variable de Twilio ({{1}}, {{2}}...) → nombre de columna en cada contacto',
+                            example: { '1': 'CLIENTE', '2': 'ASESOR', '3': 'PRODUCTS_A' },
+                        },
+                        templateParamFallbacks: {
+                            type: 'object',
+                            description: 'Valor por defecto por índice de variable si el contacto no trae la columna',
+                            example: { '2': 'Juan Pérez' },
+                        },
                         contacts: {
                             type: 'array',
                             items: {
@@ -219,7 +231,7 @@ __decorate([
                             },
                         },
                     },
-                    required: ['templateSid', 'contacts'],
+                    required: ['templateSid', 'templateParamMap', 'contacts'],
                 },
                 {
                     type: 'object',
