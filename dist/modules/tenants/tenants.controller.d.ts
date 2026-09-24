@@ -11,5 +11,24 @@ export declare class TenantsController {
         bulk_messaging_enabled?: boolean;
         wa_templates_enabled?: boolean;
     }): Promise<import("./entities/tenant.entity").Tenant>;
+    getWebhook(req: any): Promise<{
+        webhook_url: string;
+        webhook_events_enabled: boolean;
+        has_secret: boolean;
+    }>;
+    updateWebhook(req: any, body: {
+        webhook_url?: string | null;
+        enabled?: boolean;
+    }): Promise<{
+        webhook_secret?: string;
+        warning?: string;
+        webhook_url: string;
+        webhook_events_enabled: boolean;
+        has_secret: boolean;
+    }>;
+    rotateWebhookSecret(req: any): Promise<{
+        webhook_secret: string;
+        warning: string;
+    }>;
 }
 //# sourceMappingURL=tenants.controller.d.ts.map

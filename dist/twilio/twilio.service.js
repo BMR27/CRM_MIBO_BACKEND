@@ -8,6 +8,9 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -18,13 +21,29 @@ const twilio_1 = require("twilio");
 const axios_1 = __importDefault(require("axios"));
 const tenant_context_1 = require("../common/tenant/tenant-context");
 const whatsapp_integrations_service_1 = require("../modules/whatsapp/whatsapp-integrations.service");
+const messages_service_1 = require("../modules/messages/messages.service");
+const webhook_dispatch_service_1 = require("../modules/tenants/webhook-dispatch.service");
 let TwilioService = class TwilioService {
-    constructor(whatsappIntegrationsService) {
+    constructor(whatsappIntegrationsService, messagesService, webhookDispatchService) {
         this.whatsappIntegrationsService = whatsappIntegrationsService;
+        this.messagesService = messagesService;
+        this.webhookDispatchService = webhookDispatchService;
         this.allowedWATemplates = [
             { name: 'customer_service_intro_v1', sid: 'HXf9420e6e4ff17a94fe3dfaceb7aa657b' },
             { name: 'pedido_enviado_v1', sid: 'HX36751a5be358338dd5082fa394b515f5' },
         ];
+    }
+    /**
+     * URL pública donde Twilio debe notificar cambios de estado del mensaje (enviado,
+     * entregado, leído, fallido). Requiere PUBLIC_API_URL configurada (dominio público
+     * del backend); si no está configurada, se omite y no llegan actualizaciones de estado.
+     */
+    getStatusCallbackUrl() {
+        const base = String(process.env.PUBLIC_API_URL || '').trim().replace(/\/$/, '');
+        if (!base)
+            return undefined;
+        const tenantId = tenant_context_1.TenantContext.getTenantId();
+        return `${base}/api/twilio/status-callback/${tenantId}`;
     }
     isTemplateAllowed(sid) {
         const normalized = String(sid || '').trim();
@@ -79,11 +98,13 @@ let TwilioService = class TwilioService {
                 contentVariables[(idx + 1).toString()] = val;
             });
         }
+        const statusCallback = this.getStatusCallbackUrl();
         const payload = {
             to: to.startsWith('whatsapp:') ? to : `whatsapp:${to}`,
             from: from.startsWith('whatsapp:') ? from : `whatsapp:${from}`,
             contentSid: contentSid,
             contentVariables: JSON.stringify(contentVariables),
+            ...(statusCallback ? { statusCallback } : {}),
         };
         return client.messages.create(payload);
     }
@@ -103,6 +124,10 @@ let TwilioService = class TwilioService {
         data.append('From', from.startsWith('whatsapp:') ? from : `whatsapp:${from}`);
         data.append('ContentSid', contentSid);
         data.append('ContentVariables', JSON.stringify(contentVariables));
+        const statusCallback = this.getStatusCallbackUrl();
+        if (statusCallback) {
+            data.append('StatusCallback', statusCallback);
+        }
         const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
         const response = await axios_1.default.post(url, data, {
             auth: { username: accountSid, password: authToken },
@@ -150,10 +175,45 @@ let TwilioService = class TwilioService {
         const { whatsappFrom } = await this.getCredentials();
         return whatsappFrom ? `whatsapp:${whatsappFrom}` : undefined;
     }
+    /**
+     * Recibe el status callback que Twilio envía por cada cambio de estado del mensaje
+     * (queued, sent, delivered, read, failed, undelivered), actualiza el mensaje asociado
+     * y reenvía el evento al webhook_url del tenant (si lo tiene configurado y habilitado).
+     *
+     * Este endpoint es público (Twilio no envía JWT), así que el tenantId viene en la URL
+     * (definida por nosotros mismos como statusCallback al enviar el mensaje) en vez de
+     * resolverse por el usuario autenticado.
+     */
+    async handleStatusCallback(tenantId, body) {
+        return tenant_context_1.TenantContext.run({ tenantId }, async () => {
+            const sid = String(body?.MessageSid || body?.SmsSid || '').trim();
+            const status = String(body?.MessageStatus || '').trim();
+            if (!sid || !status) {
+                return { received: true, ignored: true };
+            }
+            const message = await this.messagesService.findByWhatsappMessageId(sid);
+            if (message) {
+                await this.messagesService.updateDeliveryStatus(message.id, status, body?.ErrorCode);
+            }
+            const dispatchResult = await this.webhookDispatchService.dispatch(tenantId, 'message.status_updated', {
+                message_id: message?.id || null,
+                conversation_id: message?.conversation_id || null,
+                whatsapp_message_id: sid,
+                status,
+                to: body?.To || null,
+                from: body?.From || null,
+                error_code: body?.ErrorCode || null,
+            });
+            return { received: true, message_found: Boolean(message), webhook: dispatchResult };
+        });
+    }
 };
 exports.TwilioService = TwilioService;
 exports.TwilioService = TwilioService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [whatsapp_integrations_service_1.WhatsappIntegrationsService])
+    __param(1, (0, common_1.Inject)((0, common_1.forwardRef)(() => messages_service_1.MessagesService))),
+    __metadata("design:paramtypes", [whatsapp_integrations_service_1.WhatsappIntegrationsService,
+        messages_service_1.MessagesService,
+        webhook_dispatch_service_1.WebhookDispatchService])
 ], TwilioService);
 //# sourceMappingURL=twilio.service.js.map

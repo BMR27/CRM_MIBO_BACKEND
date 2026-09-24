@@ -57,6 +57,10 @@ async function bootstrap() {
           '',
           'Incluye endpoints administrativos, webhooks, integraciones y operaciones sensibles.',
           '',
+          'Webhooks salientes: cada tenant puede registrar su propia URL en Tenants → ' +
+            'PATCH /tenants/me/webhook para recibir eventos de estado de mensajes WhatsApp ' +
+            '(enviado/entregado/leído/fallido), firmados con HMAC-SHA256. Ver docs/OUTGOING_WEBHOOKS.md.',
+          '',
           'No debe publicarse a clientes finales sin control de acceso.',
         ].join('\n'),
       )

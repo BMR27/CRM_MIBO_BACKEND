@@ -51,6 +51,15 @@ export class Tenant {
   @Column({ type: 'boolean', default: false })
   wa_templates_enabled: boolean;
 
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  webhook_url: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  webhook_secret_encrypted: string | null;
+
+  @Column({ type: 'boolean', default: false })
+  webhook_events_enabled: boolean;
+
   @CreateDateColumn()
   created_at: Date;
 

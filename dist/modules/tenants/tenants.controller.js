@@ -45,6 +45,44 @@ let TenantsController = class TenantsController {
         }
         return this.tenantsService.updateFeatureFlags(req.user.tenantId, body);
     }
+    async getWebhook(req) {
+        if (req.user.role !== 'admin') {
+            throw new common_1.ForbiddenException('Solo un administrador puede ver la configuración de webhooks');
+        }
+        const tenant = await this.tenantsService.findById(req.user.tenantId);
+        return {
+            webhook_url: tenant?.webhook_url || null,
+            webhook_events_enabled: tenant?.webhook_events_enabled || false,
+            has_secret: Boolean(tenant?.webhook_secret_encrypted),
+        };
+    }
+    async updateWebhook(req, body) {
+        if (req.user.role !== 'admin') {
+            throw new common_1.ForbiddenException('Solo un administrador puede configurar el webhook del espacio');
+        }
+        const { tenant, plainSecret } = await this.tenantsService.updateWebhookConfig(req.user.tenantId, body);
+        return {
+            webhook_url: tenant.webhook_url,
+            webhook_events_enabled: tenant.webhook_events_enabled,
+            has_secret: Boolean(tenant.webhook_secret_encrypted),
+            ...(plainSecret
+                ? {
+                    webhook_secret: plainSecret,
+                    warning: 'Guarda este secreto ahora: no volverá a mostrarse completo.',
+                }
+                : {}),
+        };
+    }
+    async rotateWebhookSecret(req) {
+        if (req.user.role !== 'admin') {
+            throw new common_1.ForbiddenException('Solo un administrador puede rotar el secreto del webhook');
+        }
+        const plainSecret = await this.tenantsService.rotateWebhookSecret(req.user.tenantId);
+        return {
+            webhook_secret: plainSecret,
+            warning: 'Guarda este secreto ahora: no volverá a mostrarse completo.',
+        };
+    }
 };
 exports.TenantsController = TenantsController;
 __decorate([
@@ -91,6 +129,49 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], TenantsController.prototype, "updateFeatures", null);
+__decorate([
+    (0, common_1.Get)('me/webhook'),
+    (0, swagger_1.ApiOperation)({ summary: 'Ver configuración de webhook saliente del espacio (solo admin)' }),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], TenantsController.prototype, "getWebhook", null);
+__decorate([
+    (0, common_1.Patch)('me/webhook'),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Configurar webhook saliente del espacio (solo admin)',
+        description: 'Registra la URL donde este espacio quiere recibir eventos de estado de mensajes de WhatsApp ' +
+            '(enviado, entregado, leído, fallido). Al habilitarlo por primera vez se genera un secreto de firma ' +
+            'que se devuelve una sola vez en la respuesta (campo webhook_secret): guárdalo, no se puede volver a mostrar.',
+    }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: 'object',
+            properties: {
+                webhook_url: { type: 'string', nullable: true, example: 'https://miempresa.com/webhooks/mibo' },
+                enabled: { type: 'boolean', example: true },
+            },
+        },
+    }),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], TenantsController.prototype, "updateWebhook", null);
+__decorate([
+    (0, common_1.Post)('me/webhook/rotate-secret'),
+    (0, common_1.HttpCode)(200),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Rotar el secreto de firma del webhook saliente (solo admin)',
+        description: 'Invalida el secreto anterior y devuelve uno nuevo una sola vez.',
+    }),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], TenantsController.prototype, "rotateWebhookSecret", null);
 exports.TenantsController = TenantsController = __decorate([
     (0, swagger_1.ApiTags)('Tenants - Espacio de trabajo'),
     (0, swagger_1.ApiBearerAuth)(),

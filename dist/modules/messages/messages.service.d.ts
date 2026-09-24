@@ -13,5 +13,7 @@ export declare class MessagesService {
     findByConversation(conversationId: string): Promise<any[]>;
     update(id: string, updateMessageDto: UpdateMessageDto): Promise<any>;
     remove(id: string): Promise<void>;
+    findByWhatsappMessageId(whatsappMessageId: string): Promise<Message>;
+    updateDeliveryStatus(id: string, status: string, errorCode?: string | null): Promise<any>;
 }
 //# sourceMappingURL=messages.service.d.ts.map

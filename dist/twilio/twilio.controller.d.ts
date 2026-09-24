@@ -18,6 +18,23 @@ export declare class TwilioController {
         success: boolean;
         twilio: import("twilio/lib/rest/api/v2010/account/message").MessageInstance;
     }>;
+    /**
+     * Twilio llama a esta URL (sin autenticación JWT: la usa su infraestructura, no un
+     * cliente de nuestra API) cada vez que cambia el estado de un mensaje enviado con
+     * statusCallback/StatusCallback configurado. El tenantId va en el path porque lo
+     * definimos nosotros mismos al armar esa URL en TwilioService.getStatusCallbackUrl().
+     */
+    statusCallback(tenantId: string, body: any): Promise<{
+        received: boolean;
+        ignored: boolean;
+        message_found?: undefined;
+        webhook?: undefined;
+    } | {
+        received: boolean;
+        message_found: boolean;
+        webhook: import("../modules/tenants/webhook-dispatch.service").WebhookDispatchResult;
+        ignored?: undefined;
+    }>;
     optionsSendWaTemplate(): {};
     optionsSendWaMedia(): {};
     getMediaByMessage(messageSid: string, filename: string | undefined, res: Response): Promise<void>;

@@ -68,6 +68,18 @@ __decorate([
     __metadata("design:type", Boolean)
 ], Tenant.prototype, "wa_templates_enabled", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 500, nullable: true }),
+    __metadata("design:type", String)
+], Tenant.prototype, "webhook_url", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], Tenant.prototype, "webhook_secret_encrypted", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', default: false }),
+    __metadata("design:type", Boolean)
+], Tenant.prototype, "webhook_events_enabled", void 0);
+__decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)
 ], Tenant.prototype, "created_at", void 0);

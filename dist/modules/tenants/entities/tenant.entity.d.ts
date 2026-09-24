@@ -11,6 +11,9 @@ export declare class Tenant {
     plan: string;
     bulk_messaging_enabled: boolean;
     wa_templates_enabled: boolean;
+    webhook_url: string | null;
+    webhook_secret_encrypted: string | null;
+    webhook_events_enabled: boolean;
     created_at: Date;
     updated_at: Date;
     users: User[];

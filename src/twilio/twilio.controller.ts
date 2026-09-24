@@ -5,7 +5,7 @@ import { MessagesService } from '../modules/messages/messages.service';
 import { JwtAuthGuard } from '../modules/auth/guards/jwt-auth.guard';
 import { TenantFeatureGuard, RequireTenantFeature } from '../common/tenant/tenant-feature.guard';
 import { Response } from 'express';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiExcludeEndpoint, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 
 @ApiTags('Twilio - WhatsApp Templates y Media')
@@ -82,6 +82,7 @@ export class TwilioController {
       } else {
         sentText = body.variables && body.variables.length > 0 ? body.variables[0] : 'Plantilla enviada';
       }
+      const sid = twilioResult?.sid || twilioResult?.message?.sid || null;
       await this.messagesService.create({
         conversation_id: body.conversation_id,
         sender_type: 'agent',
@@ -89,6 +90,7 @@ export class TwilioController {
         content: sentText,
         message_type: 'text',
         is_from_whatsapp: true,
+        whatsapp_message_id: sid,
         metadata: { twilio: twilioResult },
       });
     }
@@ -128,6 +130,18 @@ export class TwilioController {
     });
 
     return { success: true, twilio: twilioResult };
+  }
+
+  /**
+   * Twilio llama a esta URL (sin autenticación JWT: la usa su infraestructura, no un
+   * cliente de nuestra API) cada vez que cambia el estado de un mensaje enviado con
+   * statusCallback/StatusCallback configurado. El tenantId va en el path porque lo
+   * definimos nosotros mismos al armar esa URL en TwilioService.getStatusCallbackUrl().
+   */
+  @Post('status-callback/:tenantId')
+  @ApiExcludeEndpoint()
+  async statusCallback(@Param('tenantId') tenantId: string, @Body() body: any) {
+    return this.twilioService.handleStatusCallback(tenantId, body || {});
   }
 
   @Options('send-wa-template')

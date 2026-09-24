@@ -214,6 +214,13 @@ Los logs de Twilio se registran en:
 2. Verifica que el número de destino es válido
 3. Asegúrate de que el webhook responde rápidamente (< 5 segundos)
 
+## Webhooks salientes hacia tus propios sistemas
+
+Además del webhook que Twilio envía hacia este backend, cada espacio de trabajo
+puede configurar su **propia** URL para recibir eventos de estado de los mensajes
+enviados por la API (enviado, entregado, leído, fallido). Ver
+[OUTGOING_WEBHOOKS.md](./OUTGOING_WEBHOOKS.md).
+
 ## Precios de Twilio
 
 Los precios varían según el país, pero generalmente:

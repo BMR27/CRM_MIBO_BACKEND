@@ -60,6 +60,7 @@ let TwilioController = class TwilioController {
             else {
                 sentText = body.variables && body.variables.length > 0 ? body.variables[0] : 'Plantilla enviada';
             }
+            const sid = twilioResult?.sid || twilioResult?.message?.sid || null;
             await this.messagesService.create({
                 conversation_id: body.conversation_id,
                 sender_type: 'agent',
@@ -67,6 +68,7 @@ let TwilioController = class TwilioController {
                 content: sentText,
                 message_type: 'text',
                 is_from_whatsapp: true,
+                whatsapp_message_id: sid,
                 metadata: { twilio: twilioResult },
             });
         }
@@ -87,6 +89,15 @@ let TwilioController = class TwilioController {
             body: textBody,
         });
         return { success: true, twilio: twilioResult };
+    }
+    /**
+     * Twilio llama a esta URL (sin autenticación JWT: la usa su infraestructura, no un
+     * cliente de nuestra API) cada vez que cambia el estado de un mensaje enviado con
+     * statusCallback/StatusCallback configurado. El tenantId va en el path porque lo
+     * definimos nosotros mismos al armar esa URL en TwilioService.getStatusCallbackUrl().
+     */
+    async statusCallback(tenantId, body) {
+        return this.twilioService.handleStatusCallback(tenantId, body || {});
     }
     optionsSendWaTemplate() {
         return {};
@@ -180,6 +191,15 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], TwilioController.prototype, "sendWAMedia", null);
+__decorate([
+    (0, common_1.Post)('status-callback/:tenantId'),
+    (0, swagger_1.ApiExcludeEndpoint)(),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], TwilioController.prototype, "statusCallback", null);
 __decorate([
     (0, common_1.Options)('send-wa-template'),
     (0, swagger_1.ApiOperation)({ summary: 'Preflight CORS para envío de plantilla' }),

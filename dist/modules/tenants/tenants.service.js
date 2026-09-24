@@ -16,7 +16,9 @@ exports.TenantsService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
+const crypto_1 = require("crypto");
 const tenant_entity_1 = require("./entities/tenant.entity");
+const secret_crypto_1 = require("../../common/crypto/secret-crypto");
 function slugify(name) {
     return name
         .toLowerCase()
@@ -76,6 +78,55 @@ let TenantsService = class TenantsService {
         }
         await this.tenantsRepository.update(id, update);
         return this.findById(id);
+    }
+    /**
+     * Actualiza la URL de webhook saliente y/o su estado (habilitado/deshabilitado).
+     * Si se habilita y el tenant todavía no tiene un secreto de firma, genera uno nuevo
+     * y lo devuelve en texto plano (solo esta vez) para que el admin lo copie.
+     */
+    async updateWebhookConfig(id, input) {
+        const tenant = await this.findById(id);
+        if (!tenant) {
+            throw new common_1.BadRequestException('Espacio de trabajo no encontrado');
+        }
+        const update = {};
+        if (input.webhook_url !== undefined) {
+            const url = String(input.webhook_url || '').trim();
+            if (url) {
+                if (!/^https?:\/\//i.test(url)) {
+                    throw new common_1.BadRequestException('webhook_url debe ser una URL http(s) válida');
+                }
+                update.webhook_url = url;
+            }
+            else {
+                update.webhook_url = null;
+            }
+        }
+        if (typeof input.enabled === 'boolean') {
+            update.webhook_events_enabled = input.enabled;
+        }
+        let plainSecret;
+        const willBeEnabled = update.webhook_events_enabled ?? tenant.webhook_events_enabled;
+        if (willBeEnabled && !tenant.webhook_secret_encrypted) {
+            plainSecret = (0, crypto_1.randomBytes)(32).toString('hex');
+            update.webhook_secret_encrypted = (0, secret_crypto_1.encryptSecret)(plainSecret);
+        }
+        await this.tenantsRepository.update(id, update);
+        const updated = await this.findById(id);
+        return { tenant: updated, plainSecret };
+    }
+    async rotateWebhookSecret(id) {
+        const plainSecret = (0, crypto_1.randomBytes)(32).toString('hex');
+        await this.tenantsRepository.update(id, {
+            webhook_secret_encrypted: (0, secret_crypto_1.encryptSecret)(plainSecret),
+        });
+        return plainSecret;
+    }
+    async getWebhookSecretPlain(id) {
+        const tenant = await this.findById(id);
+        if (!tenant?.webhook_secret_encrypted)
+            return null;
+        return (0, secret_crypto_1.decryptSecret)(tenant.webhook_secret_encrypted);
     }
 };
 exports.TenantsService = TenantsService;

@@ -1,8 +1,10 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
 import { Twilio } from 'twilio';
 import axios from 'axios';
 import { TenantContext } from '../common/tenant/tenant-context';
 import { WhatsappIntegrationsService } from '../modules/whatsapp/whatsapp-integrations.service';
+import { MessagesService } from '../modules/messages/messages.service';
+import { WebhookDispatchService } from '../modules/tenants/webhook-dispatch.service';
 
 @Injectable()
 export class TwilioService {
@@ -11,7 +13,24 @@ export class TwilioService {
     { name: 'pedido_enviado_v1', sid: 'HX36751a5be358338dd5082fa394b515f5' },
   ];
 
-  constructor(private whatsappIntegrationsService: WhatsappIntegrationsService) {}
+  constructor(
+    private whatsappIntegrationsService: WhatsappIntegrationsService,
+    @Inject(forwardRef(() => MessagesService))
+    private messagesService: MessagesService,
+    private webhookDispatchService: WebhookDispatchService,
+  ) {}
+
+  /**
+   * URL pública donde Twilio debe notificar cambios de estado del mensaje (enviado,
+   * entregado, leído, fallido). Requiere PUBLIC_API_URL configurada (dominio público
+   * del backend); si no está configurada, se omite y no llegan actualizaciones de estado.
+   */
+  private getStatusCallbackUrl(): string | undefined {
+    const base = String(process.env.PUBLIC_API_URL || '').trim().replace(/\/$/, '');
+    if (!base) return undefined;
+    const tenantId = TenantContext.getTenantId();
+    return `${base}/api/twilio/status-callback/${tenantId}`;
+  }
 
   isTemplateAllowed(sid: string): boolean {
     const normalized = String(sid || '').trim();
@@ -79,11 +98,13 @@ export class TwilioService {
         contentVariables[(idx + 1).toString()] = val;
       });
     }
+    const statusCallback = this.getStatusCallbackUrl();
     const payload = {
       to: to.startsWith('whatsapp:') ? to : `whatsapp:${to}`,
       from: from.startsWith('whatsapp:') ? from : `whatsapp:${from}`,
       contentSid: contentSid,
       contentVariables: JSON.stringify(contentVariables),
+      ...(statusCallback ? { statusCallback } : {}),
     };
     return client.messages.create(payload);
   }
@@ -114,6 +135,10 @@ export class TwilioService {
     data.append('From', from.startsWith('whatsapp:') ? from : `whatsapp:${from}`);
     data.append('ContentSid', contentSid);
     data.append('ContentVariables', JSON.stringify(contentVariables));
+    const statusCallback = this.getStatusCallbackUrl();
+    if (statusCallback) {
+      data.append('StatusCallback', statusCallback);
+    }
 
     const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
     const response = await axios.post(url, data, {
@@ -179,5 +204,41 @@ export class TwilioService {
   async getDefaultWhatsappFrom(): Promise<string | undefined> {
     const { whatsappFrom } = await this.getCredentials();
     return whatsappFrom ? `whatsapp:${whatsappFrom}` : undefined;
+  }
+
+  /**
+   * Recibe el status callback que Twilio envía por cada cambio de estado del mensaje
+   * (queued, sent, delivered, read, failed, undelivered), actualiza el mensaje asociado
+   * y reenvía el evento al webhook_url del tenant (si lo tiene configurado y habilitado).
+   *
+   * Este endpoint es público (Twilio no envía JWT), así que el tenantId viene en la URL
+   * (definida por nosotros mismos como statusCallback al enviar el mensaje) en vez de
+   * resolverse por el usuario autenticado.
+   */
+  async handleStatusCallback(tenantId: string, body: Record<string, any>) {
+    return TenantContext.run({ tenantId }, async () => {
+      const sid = String(body?.MessageSid || body?.SmsSid || '').trim();
+      const status = String(body?.MessageStatus || '').trim();
+      if (!sid || !status) {
+        return { received: true, ignored: true };
+      }
+
+      const message = await this.messagesService.findByWhatsappMessageId(sid);
+      if (message) {
+        await this.messagesService.updateDeliveryStatus(message.id, status, body?.ErrorCode);
+      }
+
+      const dispatchResult = await this.webhookDispatchService.dispatch(tenantId, 'message.status_updated', {
+        message_id: message?.id || null,
+        conversation_id: message?.conversation_id || null,
+        whatsapp_message_id: sid,
+        status,
+        to: body?.To || null,
+        from: body?.From || null,
+        error_code: body?.ErrorCode || null,
+      });
+
+      return { received: true, message_found: Boolean(message), webhook: dispatchResult };
+    });
   }
 }

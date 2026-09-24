@@ -88,4 +88,21 @@ export class MessagesService {
   async remove(id: string) {
     await this.messageRepository.delete(id);
   }
+
+  async findByWhatsappMessageId(whatsappMessageId: string) {
+    return this.messageRepository.findOne({ where: { whatsapp_message_id: whatsappMessageId } });
+  }
+
+  async updateDeliveryStatus(id: string, status: string, errorCode?: string | null) {
+    const message = await this.messageRepository.findOne({ where: { id } });
+    if (!message) return null;
+    const metadata = {
+      ...(message.metadata || {}),
+      delivery_status: status,
+      delivery_error_code: errorCode || null,
+      delivery_status_updated_at: new Date().toISOString(),
+    };
+    await this.messageRepository.update(id, { metadata } as any);
+    return this.findOne(id);
+  }
 }
