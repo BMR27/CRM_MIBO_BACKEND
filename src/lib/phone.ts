@@ -1,10 +1,11 @@
 // phone.ts
 // Normalización global para números WhatsApp México
 export function normalizePhoneNumber(value: string): string {
-  let phone = String(value).replace('whatsapp:', '').replace(/[^0-9]/g, '');
+  const stripped = String(value).replace('whatsapp:', '').trim();
+  let phone = stripped.replace(/[^0-9]/g, '');
   // Si viene como +52XXXXXXXXXX (12 dígitos), devolver whatsapp:+52XXXXXXXXXX
-  if (value.startsWith('+52') && phone.length === 12) {
-    return 'whatsapp:' + value;
+  if (stripped.startsWith('+52') && phone.length === 12) {
+    return 'whatsapp:' + stripped;
   }
   // Si viene como 52XXXXXXXXXX (12 dígitos), devolver whatsapp:+52XXXXXXXXXX
   if (phone.length === 12 && phone.startsWith('52')) {
@@ -19,8 +20,8 @@ export function normalizePhoneNumber(value: string): string {
     return 'whatsapp:+' + phone;
   }
   // Si es número internacional, devolver con whatsapp:+
-  if (phone.length > 10 && value.startsWith('+')) {
-    return 'whatsapp:' + value;
+  if (phone.length > 10 && stripped.startsWith('+')) {
+    return 'whatsapp:' + stripped;
   }
   // Si no es formato válido, retornar vacío
   return '';
