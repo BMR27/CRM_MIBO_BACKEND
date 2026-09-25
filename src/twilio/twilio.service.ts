@@ -37,6 +37,24 @@ export class TwilioService {
     return this.allowedWATemplates.some((allowed) => allowed.sid === normalized);
   }
 
+  /**
+   * `from` es opcional en la API pública: si no se manda, se usa el número de WhatsApp
+   * configurado para el tenant en su integración de Twilio.
+   */
+  private async resolveFromNumber(from?: string): Promise<string> {
+    const provided = String(from || '').trim();
+    if (provided) {
+      return provided.startsWith('whatsapp:') ? provided : `whatsapp:${provided}`;
+    }
+    const defaultFrom = await this.getDefaultWhatsappFrom();
+    if (!defaultFrom) {
+      throw new BadRequestException(
+        'Falta el número remitente (from) y el espacio de trabajo no tiene un número de WhatsApp configurado',
+      );
+    }
+    return defaultFrom;
+  }
+
   private async getCredentials(): Promise<{ accountSid: string; authToken: string; whatsappFrom?: string }> {
     const tenantId = TenantContext.getTenantId();
     const config = await this.whatsappIntegrationsService.getConfigForTenant(tenantId);
@@ -87,11 +105,12 @@ export class TwilioService {
     variables = [],
   }: {
     to: string;
-    from: string;
+    from?: string;
     contentSid: string;
     variables?: string[];
   }) {
     const client = await this.getClient();
+    const resolvedFrom = await this.resolveFromNumber(from);
     let contentVariables = {} as Record<string, string>;
     if (Array.isArray(variables)) {
       variables.forEach((val, idx) => {
@@ -101,7 +120,7 @@ export class TwilioService {
     const statusCallback = this.getStatusCallbackUrl();
     const payload = {
       to: to.startsWith('whatsapp:') ? to : `whatsapp:${to}`,
-      from: from.startsWith('whatsapp:') ? from : `whatsapp:${from}`,
+      from: resolvedFrom,
       contentSid: contentSid,
       contentVariables: JSON.stringify(contentVariables),
       ...(statusCallback ? { statusCallback } : {}),
@@ -119,11 +138,12 @@ export class TwilioService {
     variables = [],
   }: {
     to: string;
-    from: string;
+    from?: string;
     contentSid: string;
     variables?: string[];
   }) {
     const { accountSid, authToken } = await this.getCredentials();
+    const resolvedFrom = await this.resolveFromNumber(from);
     const contentVariables: Record<string, string> = {};
     if (Array.isArray(variables)) {
       variables.forEach((val, idx) => {
@@ -132,7 +152,7 @@ export class TwilioService {
     }
     const data = new URLSearchParams();
     data.append('To', to.startsWith('whatsapp:') ? to : `whatsapp:${to}`);
-    data.append('From', from.startsWith('whatsapp:') ? from : `whatsapp:${from}`);
+    data.append('From', resolvedFrom);
     data.append('ContentSid', contentSid);
     data.append('ContentVariables', JSON.stringify(contentVariables));
     const statusCallback = this.getStatusCallbackUrl();

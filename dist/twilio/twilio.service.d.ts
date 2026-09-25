@@ -14,6 +14,11 @@ export declare class TwilioService {
      */
     private getStatusCallbackUrl;
     isTemplateAllowed(sid: string): boolean;
+    /**
+     * `from` es opcional en la API pública: si no se manda, se usa el número de WhatsApp
+     * configurado para el tenant en su integración de Twilio.
+     */
+    private resolveFromNumber;
     private getCredentials;
     private getClient;
     /**
@@ -22,7 +27,7 @@ export declare class TwilioService {
     listApprovedWATemplates(serviceSid?: string): Promise<any>;
     sendWhatsAppTemplate({ to, from, contentSid, variables, }: {
         to: string;
-        from: string;
+        from?: string;
         contentSid: string;
         variables?: string[];
     }): Promise<import("twilio/lib/rest/api/v2010/account/message").MessageInstance>;
@@ -31,7 +36,7 @@ export declare class TwilioService {
      */
     sendWhatsAppTemplateViaHttp({ to, from, contentSid, variables, }: {
         to: string;
-        from: string;
+        from?: string;
         contentSid: string;
         variables?: string[];
     }): Promise<any>;
