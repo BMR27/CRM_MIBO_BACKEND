@@ -16,13 +16,17 @@ exports.TwilioController = void 0;
 const common_1 = require("@nestjs/common");
 const twilio_service_1 = require("./twilio.service");
 const messages_service_1 = require("../modules/messages/messages.service");
+const contacts_service_1 = require("../modules/contacts/contacts.service");
+const conversations_service_1 = require("../modules/conversations/conversations.service");
 const jwt_auth_guard_1 = require("../modules/auth/guards/jwt-auth.guard");
 const tenant_feature_guard_1 = require("../common/tenant/tenant-feature.guard");
 const swagger_1 = require("@nestjs/swagger");
 let TwilioController = class TwilioController {
-    constructor(twilioService, messagesService) {
+    constructor(twilioService, messagesService, contactsService, conversationsService) {
         this.twilioService = twilioService;
         this.messagesService = messagesService;
+        this.contactsService = contactsService;
+        this.conversationsService = conversationsService;
     }
     /**
      * Endpoint para obtener plantillas aprobadas de WhatsApp en Twilio
@@ -47,8 +51,19 @@ let TwilioController = class TwilioController {
         else {
             twilioResult = await this.twilioService.sendWhatsAppTemplate(body);
         }
-        // Registrar mensaje en la conversación si se provee conversation_id
-        if (body.conversation_id) {
+        // Registrar el mensaje en la conversación: si no se provee conversation_id (p.ej.
+        // clientes externos usando la API directamente), resolvemos/creamos el contacto y la
+        // conversación a partir del número "to" para que el mensaje quede visible en la interfaz.
+        let conversationId = body.conversation_id;
+        if (!conversationId && body.to) {
+            const contact = await this.contactsService.findOrCreateByPhone(body.to);
+            const conversations = await this.conversationsService.findByContact(contact.id);
+            const conversation = conversations && conversations.length > 0
+                ? conversations[0]
+                : await this.conversationsService.create({ contact_id: contact.id });
+            conversationId = conversation.id;
+        }
+        if (conversationId) {
             // Obtener el texto real enviado por Twilio
             let sentText = '';
             if (twilioResult && twilioResult.body) {
@@ -62,7 +77,7 @@ let TwilioController = class TwilioController {
             }
             const sid = twilioResult?.sid || twilioResult?.message?.sid || null;
             await this.messagesService.create({
-                conversation_id: body.conversation_id,
+                conversation_id: conversationId,
                 sender_type: 'agent',
                 sender_id: body.sender_id || null,
                 content: sentText,
@@ -70,6 +85,9 @@ let TwilioController = class TwilioController {
                 is_from_whatsapp: true,
                 whatsapp_message_id: sid,
                 metadata: { twilio: twilioResult },
+            });
+            await this.conversationsService.update(conversationId, {
+                last_message_at: new Date(),
             });
         }
         return { success: true, twilio: twilioResult };
@@ -234,6 +252,8 @@ exports.TwilioController = TwilioController = __decorate([
     (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.Controller)('twilio'),
     __metadata("design:paramtypes", [twilio_service_1.TwilioService,
-        messages_service_1.MessagesService])
+        messages_service_1.MessagesService,
+        contacts_service_1.ContactsService,
+        conversations_service_1.ConversationsService])
 ], TwilioController);
 //# sourceMappingURL=twilio.controller.js.map

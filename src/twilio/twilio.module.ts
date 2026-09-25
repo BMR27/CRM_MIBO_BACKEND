@@ -4,9 +4,17 @@ import { TwilioController } from './twilio.controller';
 import { MessagesModule } from '../modules/messages/messages.module';
 import { WhatsappModule } from '../modules/whatsapp/whatsapp.module';
 import { TenantsModule } from '../modules/tenants/tenants.module';
+import { ContactsModule } from '../modules/contacts/contacts.module';
+import { ConversationsModule } from '../modules/conversations/conversations.module';
 
 @Module({
-  imports: [forwardRef(() => MessagesModule), forwardRef(() => WhatsappModule), TenantsModule],
+  imports: [
+    forwardRef(() => MessagesModule),
+    forwardRef(() => WhatsappModule),
+    forwardRef(() => ConversationsModule),
+    TenantsModule,
+    ContactsModule,
+  ],
   providers: [TwilioService],
   controllers: [TwilioController],
   exports: [TwilioService],

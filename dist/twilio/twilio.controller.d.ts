@@ -1,10 +1,14 @@
 import { TwilioService } from './twilio.service';
 import { MessagesService } from '../modules/messages/messages.service';
+import { ContactsService } from '../modules/contacts/contacts.service';
+import { ConversationsService } from '../modules/conversations/conversations.service';
 import { Response } from 'express';
 export declare class TwilioController {
     private readonly twilioService;
     private readonly messagesService;
-    constructor(twilioService: TwilioService, messagesService: MessagesService);
+    private readonly contactsService;
+    private readonly conversationsService;
+    constructor(twilioService: TwilioService, messagesService: MessagesService, contactsService: ContactsService, conversationsService: ConversationsService);
     /**
      * Endpoint para obtener plantillas aprobadas de WhatsApp en Twilio
      * POST /api/twilio/wa-templates { serviceSid }

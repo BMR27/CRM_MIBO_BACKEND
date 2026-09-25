@@ -2,6 +2,8 @@
 import { Body, Controller, Post, Options, Get, Param, Query, Res, UseGuards } from '@nestjs/common';
 import { TwilioService } from './twilio.service';
 import { MessagesService } from '../modules/messages/messages.service';
+import { ContactsService } from '../modules/contacts/contacts.service';
+import { ConversationsService } from '../modules/conversations/conversations.service';
 import { JwtAuthGuard } from '../modules/auth/guards/jwt-auth.guard';
 import { TenantFeatureGuard, RequireTenantFeature } from '../common/tenant/tenant-feature.guard';
 import { Response } from 'express';
@@ -15,6 +17,8 @@ export class TwilioController {
   constructor(
     private readonly twilioService: TwilioService,
     private readonly messagesService: MessagesService,
+    private readonly contactsService: ContactsService,
+    private readonly conversationsService: ConversationsService,
   ) {}
 
   /**
@@ -71,8 +75,21 @@ export class TwilioController {
       twilioResult = await this.twilioService.sendWhatsAppTemplate(body);
     }
 
-    // Registrar mensaje en la conversación si se provee conversation_id
-    if (body.conversation_id) {
+    // Registrar el mensaje en la conversación: si no se provee conversation_id (p.ej.
+    // clientes externos usando la API directamente), resolvemos/creamos el contacto y la
+    // conversación a partir del número "to" para que el mensaje quede visible en la interfaz.
+    let conversationId = body.conversation_id;
+    if (!conversationId && body.to) {
+      const contact = await this.contactsService.findOrCreateByPhone(body.to);
+      const conversations = await this.conversationsService.findByContact(contact.id);
+      const conversation =
+        conversations && conversations.length > 0
+          ? conversations[0]
+          : await this.conversationsService.create({ contact_id: contact.id } as any);
+      conversationId = conversation.id;
+    }
+
+    if (conversationId) {
       // Obtener el texto real enviado por Twilio
       let sentText = '';
       if (twilioResult && twilioResult.body) {
@@ -84,7 +101,7 @@ export class TwilioController {
       }
       const sid = twilioResult?.sid || twilioResult?.message?.sid || null;
       await this.messagesService.create({
-        conversation_id: body.conversation_id,
+        conversation_id: conversationId,
         sender_type: 'agent',
         sender_id: body.sender_id || null,
         content: sentText,
@@ -93,6 +110,9 @@ export class TwilioController {
         whatsapp_message_id: sid,
         metadata: { twilio: twilioResult },
       });
+      await this.conversationsService.update(conversationId, {
+        last_message_at: new Date(),
+      } as any);
     }
     return { success: true, twilio: twilioResult };
   }

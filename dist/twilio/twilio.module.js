@@ -13,12 +13,20 @@ const twilio_controller_1 = require("./twilio.controller");
 const messages_module_1 = require("../modules/messages/messages.module");
 const whatsapp_module_1 = require("../modules/whatsapp/whatsapp.module");
 const tenants_module_1 = require("../modules/tenants/tenants.module");
+const contacts_module_1 = require("../modules/contacts/contacts.module");
+const conversations_module_1 = require("../modules/conversations/conversations.module");
 let TwilioModule = class TwilioModule {
 };
 exports.TwilioModule = TwilioModule;
 exports.TwilioModule = TwilioModule = __decorate([
     (0, common_1.Module)({
-        imports: [(0, common_1.forwardRef)(() => messages_module_1.MessagesModule), (0, common_1.forwardRef)(() => whatsapp_module_1.WhatsappModule), tenants_module_1.TenantsModule],
+        imports: [
+            (0, common_1.forwardRef)(() => messages_module_1.MessagesModule),
+            (0, common_1.forwardRef)(() => whatsapp_module_1.WhatsappModule),
+            (0, common_1.forwardRef)(() => conversations_module_1.ConversationsModule),
+            tenants_module_1.TenantsModule,
+            contacts_module_1.ContactsModule,
+        ],
         providers: [twilio_service_1.TwilioService],
         controllers: [twilio_controller_1.TwilioController],
         exports: [twilio_service_1.TwilioService],
