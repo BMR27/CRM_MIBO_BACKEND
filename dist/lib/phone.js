@@ -22,9 +22,9 @@ function normalizePhoneNumber(value) {
     if (phone.length === 13 && phone.startsWith('521')) {
         return 'whatsapp:+' + phone;
     }
-    // Si es número internacional, devolver con whatsapp:+
-    if (phone.length > 10 && stripped.startsWith('+')) {
-        return 'whatsapp:' + stripped;
+    // Si es número internacional (con o sin "+"), devolver con whatsapp:+
+    if (phone.length > 10) {
+        return 'whatsapp:+' + phone;
     }
     // Si no es formato válido, retornar vacío
     return '';
