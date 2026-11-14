@@ -128,6 +128,44 @@ let TenantsService = class TenantsService {
             return null;
         return (0, secret_crypto_1.decryptSecret)(tenant.webhook_secret_encrypted);
     }
+    /**
+     * Branding por tenant: cada campo es independiente y opcional. Un valor ausente en
+     * el body deja el campo tal cual está; un string vacío lo limpia (vuelve a null, es
+     * decir, al branding por defecto del sistema). No afecta a otros tenants.
+     */
+    async updateBranding(id, input) {
+        const update = {};
+        if (input.branding_logo_url !== undefined) {
+            const url = String(input.branding_logo_url || '').trim();
+            if (url) {
+                if (!/^https:\/\//i.test(url)) {
+                    throw new common_1.BadRequestException('branding_logo_url debe ser una URL https válida');
+                }
+                update.branding_logo_url = url;
+            }
+            else {
+                update.branding_logo_url = null;
+            }
+        }
+        if (input.branding_accent_color !== undefined) {
+            const color = String(input.branding_accent_color || '').trim();
+            if (color) {
+                if (!/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(color)) {
+                    throw new common_1.BadRequestException('branding_accent_color debe ser un color hexadecimal, ej. #2563EB');
+                }
+                update.branding_accent_color = color;
+            }
+            else {
+                update.branding_accent_color = null;
+            }
+        }
+        if (input.branding_display_name !== undefined) {
+            const displayName = String(input.branding_display_name || '').trim();
+            update.branding_display_name = displayName ? displayName.slice(0, 200) : null;
+        }
+        await this.tenantsRepository.update(id, update);
+        return this.findById(id);
+    }
 };
 exports.TenantsService = TenantsService;
 exports.TenantsService = TenantsService = __decorate([

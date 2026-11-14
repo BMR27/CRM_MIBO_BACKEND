@@ -45,6 +45,12 @@ let TenantsController = class TenantsController {
         }
         return this.tenantsService.updateFeatureFlags(req.user.tenantId, body);
     }
+    async updateBranding(req, body) {
+        if (req.user.role !== 'admin') {
+            throw new common_1.ForbiddenException('Solo un administrador puede configurar el branding del espacio');
+        }
+        return this.tenantsService.updateBranding(req.user.tenantId, body);
+    }
     async getWebhook(req) {
         if (req.user.role !== 'admin') {
             throw new common_1.ForbiddenException('Solo un administrador puede ver la configuración de webhooks');
@@ -129,6 +135,25 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], TenantsController.prototype, "updateFeatures", null);
+__decorate([
+    (0, common_1.Patch)('me/branding'),
+    (0, swagger_1.ApiOperation)({ summary: 'Configurar branding del espacio: logo, color de acento y nombre para mostrar (solo admin)' }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: 'object',
+            properties: {
+                branding_logo_url: { type: 'string', nullable: true, example: 'https://miempresa.com/logo.png' },
+                branding_accent_color: { type: 'string', nullable: true, example: '#2563EB' },
+                branding_display_name: { type: 'string', nullable: true, example: 'Mi Empresa' },
+            },
+        },
+    }),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], TenantsController.prototype, "updateBranding", null);
 __decorate([
     (0, common_1.Get)('me/webhook'),
     (0, swagger_1.ApiOperation)({ summary: 'Ver configuración de webhook saliente del espacio (solo admin)' }),

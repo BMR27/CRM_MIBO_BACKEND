@@ -11,6 +11,11 @@ export declare class TenantsController {
         bulk_messaging_enabled?: boolean;
         wa_templates_enabled?: boolean;
     }): Promise<import("./entities/tenant.entity").Tenant>;
+    updateBranding(req: any, body: {
+        branding_logo_url?: string | null;
+        branding_accent_color?: string | null;
+        branding_display_name?: string | null;
+    }): Promise<import("./entities/tenant.entity").Tenant>;
     getWebhook(req: any): Promise<{
         webhook_url: string;
         webhook_events_enabled: boolean;

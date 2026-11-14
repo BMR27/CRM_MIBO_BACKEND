@@ -60,6 +60,33 @@ export class TenantsController {
     return this.tenantsService.updateFeatureFlags(req.user.tenantId, body);
   }
 
+  @Patch('me/branding')
+  @ApiOperation({ summary: 'Configurar branding del espacio: logo, color de acento y nombre para mostrar (solo admin)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        branding_logo_url: { type: 'string', nullable: true, example: 'https://miempresa.com/logo.png' },
+        branding_accent_color: { type: 'string', nullable: true, example: '#2563EB' },
+        branding_display_name: { type: 'string', nullable: true, example: 'Mi Empresa' },
+      },
+    },
+  })
+  async updateBranding(
+    @Request() req,
+    @Body()
+    body: {
+      branding_logo_url?: string | null;
+      branding_accent_color?: string | null;
+      branding_display_name?: string | null;
+    },
+  ) {
+    if (req.user.role !== 'admin') {
+      throw new ForbiddenException('Solo un administrador puede configurar el branding del espacio');
+    }
+    return this.tenantsService.updateBranding(req.user.tenantId, body);
+  }
+
   @Get('me/webhook')
   @ApiOperation({ summary: 'Ver configuración de webhook saliente del espacio (solo admin)' })
   async getWebhook(@Request() req) {

@@ -14,6 +14,9 @@ export declare class Tenant {
     webhook_url: string | null;
     webhook_secret_encrypted: string | null;
     webhook_events_enabled: boolean;
+    branding_logo_url: string | null;
+    branding_accent_color: string | null;
+    branding_display_name: string | null;
     created_at: Date;
     updated_at: Date;
     users: User[];

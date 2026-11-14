@@ -60,6 +60,15 @@ export class Tenant {
   @Column({ type: 'boolean', default: false })
   webhook_events_enabled: boolean;
 
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  branding_logo_url: string | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  branding_accent_color: string | null;
+
+  @Column({ type: 'varchar', length: 200, nullable: true })
+  branding_display_name: string | null;
+
   @CreateDateColumn()
   created_at: Date;
 

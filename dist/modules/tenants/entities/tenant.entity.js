@@ -80,6 +80,18 @@ __decorate([
     __metadata("design:type", Boolean)
 ], Tenant.prototype, "webhook_events_enabled", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 500, nullable: true }),
+    __metadata("design:type", String)
+], Tenant.prototype, "branding_logo_url", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 20, nullable: true }),
+    __metadata("design:type", String)
+], Tenant.prototype, "branding_accent_color", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 200, nullable: true }),
+    __metadata("design:type", String)
+], Tenant.prototype, "branding_display_name", void 0);
+__decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)
 ], Tenant.prototype, "created_at", void 0);

@@ -33,5 +33,15 @@ export declare class TenantsService {
     }>;
     rotateWebhookSecret(id: string): Promise<string>;
     getWebhookSecretPlain(id: string): Promise<string | null>;
+    /**
+     * Branding por tenant: cada campo es independiente y opcional. Un valor ausente en
+     * el body deja el campo tal cual está; un string vacío lo limpia (vuelve a null, es
+     * decir, al branding por defecto del sistema). No afecta a otros tenants.
+     */
+    updateBranding(id: string, input: {
+        branding_logo_url?: string | null;
+        branding_accent_color?: string | null;
+        branding_display_name?: string | null;
+    }): Promise<Tenant>;
 }
 //# sourceMappingURL=tenants.service.d.ts.map
