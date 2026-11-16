@@ -130,10 +130,22 @@ export class MessagesBulkController {
     }
     const templateParamMap: Record<string, string> = body?.templateParamMap || {};
     const templateParamFallbacks: Record<string, string> = body?.templateParamFallbacks || {};
+    const templateBody = String(body?.templateBody || '').trim();
     const paramIndexes = Object.keys(templateParamMap).sort((a, b) => Number(a) - Number(b));
     if (paramIndexes.length === 0) {
       throw new BadRequestException('templateParamMap es requerido');
     }
+
+    // Arma el texto completo de la plantilla con las variables ya resueltas, para que
+    // el chat muestre lo que realmente recibió el cliente y no solo un placeholder.
+    const renderTemplateBody = (values: string[]) => {
+      if (!templateBody) return null;
+      let rendered = templateBody;
+      paramIndexes.forEach((idx, i) => {
+        rendered = rendered.split(`{{${idx}}}`).join(values[i] ?? '');
+      });
+      return rendered;
+    };
 
     const campaignId = String(body.campaignId || `bulk_${Date.now()}`);
     const campaignName = String(body.campaignName || 'Campaña').trim() || 'Campaña';
@@ -191,10 +203,12 @@ export class MessagesBulkController {
         });
         results.push({ to, status: 'sent', sid: res.sid });
         // 4. Registrar mensaje en la conversación
+        const resolvedContent =
+          renderTemplateBody(variablesToSend) || `Plantilla enviada (${contentSid}): ${variablesToSend.join(' | ')}`;
         await this.messagesService.create({
           conversation_id: conversation.id,
           sender_type: 'agent',
-          content: `Plantilla enviada (${contentSid}): ${variablesToSend.join(' | ')}`,
+          content: resolvedContent,
           message_type: 'text',
           is_from_whatsapp: false,
           whatsapp_message_id: res.sid,
