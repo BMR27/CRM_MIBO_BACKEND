@@ -69,6 +69,24 @@ export class Tenant {
   @Column({ type: 'varchar', length: 200, nullable: true })
   branding_display_name: string | null;
 
+  @Column({ type: 'bytea', nullable: true, select: false })
+  branding_logo_data: Buffer | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  branding_logo_mime: string | null;
+
+  @Column({ type: 'boolean', default: false })
+  module_citas_enabled: boolean;
+
+  @Column({ type: 'boolean', default: false })
+  module_agentes_enabled: boolean;
+
+  @Column({ type: 'boolean', default: false })
+  module_leads_enabled: boolean;
+
+  @Column({ type: 'boolean', default: false })
+  module_docs_api_enabled: boolean;
+
   @CreateDateColumn()
   created_at: Date;
 

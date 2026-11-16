@@ -5,11 +5,12 @@ import { TenantsService } from './tenants.service';
 import { TenantsController } from './tenants.controller';
 import { WebhookDispatchService } from './webhook-dispatch.service';
 import { InternalWebhooksController } from './internal-webhooks.controller';
+import { TenantLogoController } from './tenant-logo.controller';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Tenant])],
   providers: [TenantsService, WebhookDispatchService],
-  controllers: [TenantsController, InternalWebhooksController],
+  controllers: [TenantsController, InternalWebhooksController, TenantLogoController],
   exports: [TenantsService, WebhookDispatchService],
 })
 export class TenantsModule {}

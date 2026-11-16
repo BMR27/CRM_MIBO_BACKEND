@@ -1,8 +1,26 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Get, HttpCode, Patch, Post, Request, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  ForbiddenException,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Request,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { TenantsService } from './tenants.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PlatformAdminGuard } from '../../common/auth/platform-admin.guard';
+
+const MAX_LOGO_BYTES = 2 * 1024 * 1024;
+const ALLOWED_LOGO_MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']);
 
 @ApiTags('Tenants - Espacio de trabajo')
 @ApiBearerAuth()
@@ -85,6 +103,54 @@ export class TenantsController {
       throw new ForbiddenException('Solo un administrador puede configurar el branding del espacio');
     }
     return this.tenantsService.updateBranding(req.user.tenantId, body);
+  }
+
+  @Post('me/branding/logo')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Subir el logo del espacio como archivo de imagen (solo admin)' })
+  @ApiBody({ schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } } })
+  async uploadBrandingLogo(@Request() req, @UploadedFile() file: Express.Multer.File) {
+    if (req.user.role !== 'admin') {
+      throw new ForbiddenException('Solo un administrador puede configurar el branding del espacio');
+    }
+    if (!file) {
+      throw new BadRequestException('Falta el archivo de logo');
+    }
+    if (!ALLOWED_LOGO_MIME.has(file.mimetype)) {
+      throw new BadRequestException('El logo debe ser PNG, JPG, WEBP o SVG');
+    }
+    if (file.size > MAX_LOGO_BYTES) {
+      throw new BadRequestException('El logo no puede pesar más de 2MB');
+    }
+    return this.tenantsService.saveBrandingLogo(req.user.tenantId, file.buffer, file.mimetype);
+  }
+
+  @Patch(':id/modules')
+  @UseGuards(PlatformAdminGuard)
+  @ApiOperation({ summary: 'Habilitar/deshabilitar módulos opcionales del sidebar para un espacio (solo super-admin de plataforma)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        module_citas_enabled: { type: 'boolean' },
+        module_agentes_enabled: { type: 'boolean' },
+        module_leads_enabled: { type: 'boolean' },
+        module_docs_api_enabled: { type: 'boolean' },
+      },
+    },
+  })
+  async updateModules(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      module_citas_enabled?: boolean;
+      module_agentes_enabled?: boolean;
+      module_leads_enabled?: boolean;
+      module_docs_api_enabled?: boolean;
+    },
+  ) {
+    return this.tenantsService.updateModules(id, body);
   }
 
   @Get('me/webhook')

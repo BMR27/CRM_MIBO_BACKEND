@@ -92,6 +92,30 @@ __decorate([
     __metadata("design:type", String)
 ], Tenant.prototype, "branding_display_name", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'bytea', nullable: true, select: false }),
+    __metadata("design:type", Buffer)
+], Tenant.prototype, "branding_logo_data", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 100, nullable: true }),
+    __metadata("design:type", String)
+], Tenant.prototype, "branding_logo_mime", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', default: false }),
+    __metadata("design:type", Boolean)
+], Tenant.prototype, "module_citas_enabled", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', default: false }),
+    __metadata("design:type", Boolean)
+], Tenant.prototype, "module_agentes_enabled", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', default: false }),
+    __metadata("design:type", Boolean)
+], Tenant.prototype, "module_leads_enabled", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', default: false }),
+    __metadata("design:type", Boolean)
+], Tenant.prototype, "module_docs_api_enabled", void 0);
+__decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)
 ], Tenant.prototype, "created_at", void 0);

@@ -43,5 +43,25 @@ export declare class TenantsService {
         branding_accent_color?: string | null;
         branding_display_name?: string | null;
     }): Promise<Tenant>;
+    /**
+     * Guarda el logo subido como archivo (bytes en la propia base, sin depender de un
+     * filesystem persistente en el hosting) y actualiza branding_logo_url para que
+     * apunte al endpoint público que lo sirve.
+     */
+    saveBrandingLogo(id: string, data: Buffer, mime: string): Promise<Tenant>;
+    getBrandingLogo(id: string): Promise<{
+        data: Buffer;
+        mime: string;
+    } | null>;
+    /**
+     * Módulos opcionales del sidebar (Citas, Agentes, Leads, Documentación API). Cada
+     * tenant arranca sin ellos; solo un super-admin de plataforma puede habilitarlos.
+     */
+    updateModules(id: string, flags: {
+        module_citas_enabled?: boolean;
+        module_agentes_enabled?: boolean;
+        module_leads_enabled?: boolean;
+        module_docs_api_enabled?: boolean;
+    }): Promise<Tenant>;
 }
 //# sourceMappingURL=tenants.service.d.ts.map

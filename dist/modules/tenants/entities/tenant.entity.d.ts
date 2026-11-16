@@ -17,6 +17,12 @@ export declare class Tenant {
     branding_logo_url: string | null;
     branding_accent_color: string | null;
     branding_display_name: string | null;
+    branding_logo_data: Buffer | null;
+    branding_logo_mime: string | null;
+    module_citas_enabled: boolean;
+    module_agentes_enabled: boolean;
+    module_leads_enabled: boolean;
+    module_docs_api_enabled: boolean;
     created_at: Date;
     updated_at: Date;
     users: User[];

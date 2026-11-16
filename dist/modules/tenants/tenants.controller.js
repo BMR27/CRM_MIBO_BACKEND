@@ -14,10 +14,13 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TenantsController = void 0;
 const common_1 = require("@nestjs/common");
+const platform_express_1 = require("@nestjs/platform-express");
 const swagger_1 = require("@nestjs/swagger");
 const tenants_service_1 = require("./tenants.service");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const platform_admin_guard_1 = require("../../common/auth/platform-admin.guard");
+const MAX_LOGO_BYTES = 2 * 1024 * 1024;
+const ALLOWED_LOGO_MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']);
 let TenantsController = class TenantsController {
     constructor(tenantsService) {
         this.tenantsService = tenantsService;
@@ -50,6 +53,24 @@ let TenantsController = class TenantsController {
             throw new common_1.ForbiddenException('Solo un administrador puede configurar el branding del espacio');
         }
         return this.tenantsService.updateBranding(req.user.tenantId, body);
+    }
+    async uploadBrandingLogo(req, file) {
+        if (req.user.role !== 'admin') {
+            throw new common_1.ForbiddenException('Solo un administrador puede configurar el branding del espacio');
+        }
+        if (!file) {
+            throw new common_1.BadRequestException('Falta el archivo de logo');
+        }
+        if (!ALLOWED_LOGO_MIME.has(file.mimetype)) {
+            throw new common_1.BadRequestException('El logo debe ser PNG, JPG, WEBP o SVG');
+        }
+        if (file.size > MAX_LOGO_BYTES) {
+            throw new common_1.BadRequestException('El logo no puede pesar más de 2MB');
+        }
+        return this.tenantsService.saveBrandingLogo(req.user.tenantId, file.buffer, file.mimetype);
+    }
+    async updateModules(id, body) {
+        return this.tenantsService.updateModules(id, body);
     }
     async getWebhook(req) {
         if (req.user.role !== 'admin') {
@@ -154,6 +175,39 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], TenantsController.prototype, "updateBranding", null);
+__decorate([
+    (0, common_1.Post)('me/branding/logo'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file')),
+    (0, swagger_1.ApiConsumes)('multipart/form-data'),
+    (0, swagger_1.ApiOperation)({ summary: 'Subir el logo del espacio como archivo de imagen (solo admin)' }),
+    (0, swagger_1.ApiBody)({ schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } } }),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.UploadedFile)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], TenantsController.prototype, "uploadBrandingLogo", null);
+__decorate([
+    (0, common_1.Patch)(':id/modules'),
+    (0, common_1.UseGuards)(platform_admin_guard_1.PlatformAdminGuard),
+    (0, swagger_1.ApiOperation)({ summary: 'Habilitar/deshabilitar módulos opcionales del sidebar para un espacio (solo super-admin de plataforma)' }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: 'object',
+            properties: {
+                module_citas_enabled: { type: 'boolean' },
+                module_agentes_enabled: { type: 'boolean' },
+                module_leads_enabled: { type: 'boolean' },
+                module_docs_api_enabled: { type: 'boolean' },
+            },
+        },
+    }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], TenantsController.prototype, "updateModules", null);
 __decorate([
     (0, common_1.Get)('me/webhook'),
     (0, swagger_1.ApiOperation)({ summary: 'Ver configuración de webhook saliente del espacio (solo admin)' }),

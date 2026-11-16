@@ -16,6 +16,13 @@ export declare class TenantsController {
         branding_accent_color?: string | null;
         branding_display_name?: string | null;
     }): Promise<import("./entities/tenant.entity").Tenant>;
+    uploadBrandingLogo(req: any, file: Express.Multer.File): Promise<import("./entities/tenant.entity").Tenant>;
+    updateModules(id: string, body: {
+        module_citas_enabled?: boolean;
+        module_agentes_enabled?: boolean;
+        module_leads_enabled?: boolean;
+        module_docs_api_enabled?: boolean;
+    }): Promise<import("./entities/tenant.entity").Tenant>;
     getWebhook(req: any): Promise<{
         webhook_url: string;
         webhook_events_enabled: boolean;

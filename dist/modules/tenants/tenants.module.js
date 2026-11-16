@@ -14,6 +14,7 @@ const tenants_service_1 = require("./tenants.service");
 const tenants_controller_1 = require("./tenants.controller");
 const webhook_dispatch_service_1 = require("./webhook-dispatch.service");
 const internal_webhooks_controller_1 = require("./internal-webhooks.controller");
+const tenant_logo_controller_1 = require("./tenant-logo.controller");
 let TenantsModule = class TenantsModule {
 };
 exports.TenantsModule = TenantsModule;
@@ -21,7 +22,7 @@ exports.TenantsModule = TenantsModule = __decorate([
     (0, common_1.Module)({
         imports: [typeorm_1.TypeOrmModule.forFeature([tenant_entity_1.Tenant])],
         providers: [tenants_service_1.TenantsService, webhook_dispatch_service_1.WebhookDispatchService],
-        controllers: [tenants_controller_1.TenantsController, internal_webhooks_controller_1.InternalWebhooksController],
+        controllers: [tenants_controller_1.TenantsController, internal_webhooks_controller_1.InternalWebhooksController, tenant_logo_controller_1.TenantLogoController],
         exports: [tenants_service_1.TenantsService, webhook_dispatch_service_1.WebhookDispatchService],
     })
 ], TenantsModule);

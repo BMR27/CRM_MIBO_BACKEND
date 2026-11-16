@@ -166,6 +166,49 @@ let TenantsService = class TenantsService {
         await this.tenantsRepository.update(id, update);
         return this.findById(id);
     }
+    /**
+     * Guarda el logo subido como archivo (bytes en la propia base, sin depender de un
+     * filesystem persistente en el hosting) y actualiza branding_logo_url para que
+     * apunte al endpoint público que lo sirve.
+     */
+    async saveBrandingLogo(id, data, mime) {
+        const base = String(process.env.PUBLIC_API_URL || '').trim().replace(/\/$/, '');
+        const logoUrl = base ? `${base}/api/tenants/${id}/branding-logo` : null;
+        await this.tenantsRepository.update(id, {
+            branding_logo_data: data,
+            branding_logo_mime: mime,
+            ...(logoUrl ? { branding_logo_url: logoUrl } : {}),
+        });
+        return this.findById(id);
+    }
+    async getBrandingLogo(id) {
+        const tenant = await this.tenantsRepository.findOne({
+            where: { id },
+            select: ['id', 'branding_logo_data', 'branding_logo_mime'],
+        });
+        if (!tenant?.branding_logo_data)
+            return null;
+        return { data: tenant.branding_logo_data, mime: tenant.branding_logo_mime || 'image/png' };
+    }
+    /**
+     * Módulos opcionales del sidebar (Citas, Agentes, Leads, Documentación API). Cada
+     * tenant arranca sin ellos; solo un super-admin de plataforma puede habilitarlos.
+     */
+    async updateModules(id, flags) {
+        const update = {};
+        for (const key of [
+            'module_citas_enabled',
+            'module_agentes_enabled',
+            'module_leads_enabled',
+            'module_docs_api_enabled',
+        ]) {
+            if (typeof flags[key] === 'boolean') {
+                update[key] = flags[key];
+            }
+        }
+        await this.tenantsRepository.update(id, update);
+        return this.findById(id);
+    }
 };
 exports.TenantsService = TenantsService;
 exports.TenantsService = TenantsService = __decorate([
