@@ -15,6 +15,9 @@ export class TwilioService {
     // {{2}} en vez de fija ("12.09"). Pendiente de aprobación de WhatsApp al crearla —
     // los envíos fallarán hasta que Meta la apruebe.
     { name: 'relivital_descuento20_v2', sid: 'HX5dd56e7d661ce1e31d03e5115dac1b5a' },
+    // Plantilla con header de imagen (bono de 30 zł). Pendiente de aprobación de
+    // WhatsApp al crearla — los envíos fallarán hasta que Meta la apruebe.
+    { name: 'relivital_bono30_v1', sid: 'HXcd993f395dac137dec02e68505f8074c' },
   ];
 
   constructor(
