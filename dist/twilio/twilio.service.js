@@ -31,6 +31,7 @@ let TwilioService = class TwilioService {
         this.allowedWATemplates = [
             { name: 'customer_service_intro_v1', sid: 'HXf9420e6e4ff17a94fe3dfaceb7aa657b' },
             { name: 'pedido_enviado_v1', sid: 'HX36751a5be358338dd5082fa394b515f5' },
+            { name: 'relivital_descuento20_v1', sid: 'HXf28c75519779a906bed40de37c57411d' },
         ];
     }
     /**
