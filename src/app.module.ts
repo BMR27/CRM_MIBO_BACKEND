@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module'
 import { UsersModule } from './modules/users/users.module'
 import { RolesModule } from './modules/roles/roles.module'
 import { TenantsModule } from './modules/tenants/tenants.module'
+import { MediaAssetsModule } from './modules/media-assets/media-assets.module'
 import { ContactsModule } from './modules/contacts/contacts.module'
 import { ConversationsModule } from './modules/conversations/conversations.module'
 import { MessagesModule } from './modules/messages/messages.module'
@@ -81,6 +82,7 @@ import { VoiceModule } from './modules/voice/voice.module'
     RolesModule,
     UsersModule,
     TenantsModule,
+    MediaAssetsModule,
     ContactsModule,
     ConversationsModule,
     MessagesModule,
