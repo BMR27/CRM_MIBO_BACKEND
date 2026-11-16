@@ -12,6 +12,9 @@ export class TwilioService {
     { name: 'customer_service_intro_v1', sid: 'HXf9420e6e4ff17a94fe3dfaceb7aa657b' },
     { name: 'pedido_enviado_v1', sid: 'HX36751a5be358338dd5082fa394b515f5' },
     { name: 'relivital_descuento20_v1', sid: 'HXf28c75519779a906bed40de37c57411d' },
+    // v2: misma plantilla pero con la fecha límite del descuento como variable {{2}}
+    // en vez de fija ("12.09"). Pendiente de aprobación de WhatsApp al crearla.
+    { name: 'relivital_descuento20_v2', sid: 'HX5dd56e7d661ce1e31d03e5115dac1b5a' },
   ];
 
   constructor(
