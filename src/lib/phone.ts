@@ -15,9 +15,11 @@ export function normalizePhoneNumber(value: string): string {
   if (phone.length === 10) {
     return 'whatsapp:+52' + phone;
   }
-  // Si ya viene como 521XXXXXXXXXX (13 dígitos), devolver tal cual
+  // Si viene como 521XXXXXXXXXX (13 dígitos, celular MX con el "1" extra que a veces
+  // agrega WhatsApp), quitar el "1" para que coincida con el mismo contacto que
+  // 52XXXXXXXXXX — de lo contrario quedan como dos números/contactos distintos.
   if (phone.length === 13 && phone.startsWith('521')) {
-    return 'whatsapp:+' + phone;
+    return 'whatsapp:+52' + phone.slice(3);
   }
   // Si es número internacional (con o sin "+"), devolver con whatsapp:+
   if (phone.length > 10) {
