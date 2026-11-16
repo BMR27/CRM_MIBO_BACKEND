@@ -19,6 +19,11 @@ import { MediaAssetsService } from './media-assets.service';
 
 const ALLOWED_MIME = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const MAX_BYTES = 5 * 1024 * 1024;
+const EXT_BY_MIME: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/webp': 'webp',
+};
 
 @ApiTags('Media Assets - Imágenes públicas para plantillas')
 @Controller('media-assets')
@@ -49,13 +54,17 @@ export class MediaAssetsController {
       buffer: file.buffer,
     });
     const base = process.env.PUBLIC_API_URL || '';
+    const ext = EXT_BY_MIME[file.mimetype] || 'jpg';
     return {
       id: asset.id,
-      url: `${base.replace(/\/$/, '')}/api/media-assets/${asset.id}`,
+      url: `${base.replace(/\/$/, '')}/api/media-assets/${asset.id}.${ext}`,
     };
   }
 
-  @Get(':id')
+  // Twilio exige que la URL del header de la plantilla termine en una extensión de
+  // imagen reconocible (.jpg/.png/.webp) o rechaza el registro con "media extension
+  // is not supported" — por eso la ruta acepta "id.ext" en vez de solo "id".
+  @Get(':id.:ext')
   @ApiExcludeEndpoint()
   async get(@Param('id') id: string, @Res() res: Response) {
     const asset = await this.mediaAssetsService.findById(id);
