@@ -59,6 +59,18 @@ const auth_service_1 = require("./auth.service");
 const jwt_auth_guard_1 = require("./guards/jwt-auth.guard");
 const platform_admin_guard_1 = require("../../common/auth/platform-admin.guard");
 const bcrypt = __importStar(require("bcryptjs"));
+// La IP real llega en el header que pone el proxy (Railway); el primer valor de
+// x-forwarded-for es el cliente y el resto son los saltos intermedios.
+function getRequestIp(req) {
+    const forwarded = String(req?.headers?.['x-forwarded-for'] || '').trim();
+    if (forwarded) {
+        const first = forwarded.split(',')[0]?.trim();
+        if (first)
+            return first;
+    }
+    const realIp = String(req?.headers?.['x-real-ip'] || '').trim();
+    return realIp || req?.ip || null;
+}
 let AuthController = class AuthController {
     constructor(usersService, rolesService, tenantsService, authService, dataSource) {
         this.usersService = usersService;
@@ -160,7 +172,7 @@ let AuthController = class AuthController {
             throw new common_1.BadRequestException(error.message || 'Error al registrar usuario');
         }
     }
-    async login(body) {
+    async login(body, req) {
         try {
             const user = await this.usersService.findByEmailWithRole(body.email);
             if (!user) {
@@ -170,6 +182,10 @@ let AuthController = class AuthController {
             if (!isValidPassword) {
                 throw new common_1.BadRequestException('Email o contraseña inválidos');
             }
+            // Queda registrado aquí también (no solo en el login del frontend) para que los
+            // ingresos hechos directo contra la API desde integraciones aparezcan en el
+            // módulo de usuarios de plataforma.
+            await this.usersService.markLogin(user.id, getRequestIp(req));
             const token = this.authService.signToken({ id: user.id, email: user.email, role: user.role }, user.tenant_id, user.is_platform_admin === true);
             return {
                 access_token: token,
@@ -319,8 +335,9 @@ __decorate([
         description: 'Credenciales inválidas',
     }),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
 __decorate([

@@ -55,7 +55,7 @@ export declare class AuthController {
     login(body: {
         email: string;
         password: string;
-    }): Promise<{
+    }, req?: any): Promise<{
         access_token: string;
         token_type: string;
         expires_in: string;

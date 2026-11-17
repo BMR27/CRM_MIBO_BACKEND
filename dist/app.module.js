@@ -17,6 +17,7 @@ const auth_module_1 = require("./modules/auth/auth.module");
 const users_module_1 = require("./modules/users/users.module");
 const roles_module_1 = require("./modules/roles/roles.module");
 const tenants_module_1 = require("./modules/tenants/tenants.module");
+const media_assets_module_1 = require("./modules/media-assets/media-assets.module");
 const contacts_module_1 = require("./modules/contacts/contacts.module");
 const conversations_module_1 = require("./modules/conversations/conversations.module");
 const messages_module_1 = require("./modules/messages/messages.module");
@@ -86,6 +87,7 @@ exports.AppModule = AppModule = __decorate([
             roles_module_1.RolesModule,
             users_module_1.UsersModule,
             tenants_module_1.TenantsModule,
+            media_assets_module_1.MediaAssetsModule,
             contacts_module_1.ContactsModule,
             conversations_module_1.ConversationsModule,
             messages_module_1.MessagesModule,

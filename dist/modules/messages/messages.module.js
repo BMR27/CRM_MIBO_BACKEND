@@ -10,6 +10,7 @@ exports.MessagesModule = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const message_entity_1 = require("./entities/message.entity");
+const campaign_recipient_entity_1 = require("./entities/campaign-recipient.entity");
 const messages_service_1 = require("./messages.service");
 const messages_controller_1 = require("./messages.controller");
 const messages_markRead_1 = require("./messages.markRead");
@@ -28,7 +29,7 @@ let MessagesModule = class MessagesModule {
 exports.MessagesModule = MessagesModule;
 exports.MessagesModule = MessagesModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([message_entity_1.Message]), (0, common_2.forwardRef)(() => twilio_module_1.TwilioModule), (0, common_2.forwardRef)(() => contacts_module_1.ContactsModule), (0, common_2.forwardRef)(() => conversations_module_1.ConversationsModule), tenants_module_1.TenantsModule],
+        imports: [typeorm_1.TypeOrmModule.forFeature([message_entity_1.Message, campaign_recipient_entity_1.CampaignRecipient]), (0, common_2.forwardRef)(() => twilio_module_1.TwilioModule), (0, common_2.forwardRef)(() => contacts_module_1.ContactsModule), (0, common_2.forwardRef)(() => conversations_module_1.ConversationsModule), tenants_module_1.TenantsModule],
         providers: [
             messages_service_1.MessagesService,
             messages_markRead_1.MessagesMarkReadService,

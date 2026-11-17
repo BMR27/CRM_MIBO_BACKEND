@@ -143,6 +143,21 @@ let UsersService = class UsersService {
         const updatedUser = await this.findOne(id);
         return updatedUser;
     }
+    /**
+     * Sella el último ingreso del usuario. Se llama desde el login y nunca debe tumbar
+     * la autenticación: si falla la escritura, el usuario igual entra.
+     */
+    async markLogin(id, ip) {
+        try {
+            await this.usersRepository.update(id, {
+                last_login_at: new Date(),
+                last_login_ip: ip ? String(ip).slice(0, 100) : null,
+            });
+        }
+        catch (error) {
+            console.error('No se pudo registrar el último ingreso:', error?.message || error);
+        }
+    }
     async updatePassword(id, newPassword) {
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         await this.usersRepository.update(id, {

@@ -50,6 +50,9 @@ const common_1 = require("@nestjs/common");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const tenant_feature_guard_1 = require("../../common/tenant/tenant-feature.guard");
 const platform_express_1 = require("@nestjs/platform-express");
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
+const campaign_recipient_entity_1 = require("./entities/campaign-recipient.entity");
 const XLSX = __importStar(require("xlsx"));
 const twilio_service_1 = require("../../twilio/twilio.service");
 const contacts_service_1 = require("../contacts/contacts.service");
@@ -57,11 +60,24 @@ const conversations_service_1 = require("../conversations/conversations.service"
 const messages_service_1 = require("./messages.service");
 const swagger_1 = require("@nestjs/swagger");
 let MessagesBulkController = class MessagesBulkController {
-    constructor(twilioService, contactsService, conversationsService, messagesService) {
+    constructor(twilioService, contactsService, conversationsService, messagesService, campaignRecipientsRepository) {
         this.twilioService = twilioService;
         this.contactsService = contactsService;
         this.conversationsService = conversationsService;
         this.messagesService = messagesService;
+        this.campaignRecipientsRepository = campaignRecipientsRepository;
+    }
+    /**
+     * Deja constancia de un destinatario en la bitácora de la campaña. Nunca debe
+     * interrumpir el envío: si la bitácora falla, se registra en consola y se sigue.
+     */
+    async logRecipient(data) {
+        try {
+            await this.campaignRecipientsRepository.save(this.campaignRecipientsRepository.create(data));
+        }
+        catch (error) {
+            console.error('[bulk] No se pudo registrar el destinatario en la bitácora:', error?.message);
+        }
     }
     async uploadBulk(file, body, req) {
         let data = [];
@@ -96,10 +112,23 @@ let MessagesBulkController = class MessagesBulkController {
         }
         const templateParamMap = body?.templateParamMap || {};
         const templateParamFallbacks = body?.templateParamFallbacks || {};
+        const templateBody = String(body?.templateBody || '').trim();
+        const templateName = String(body?.templateName || '').trim();
         const paramIndexes = Object.keys(templateParamMap).sort((a, b) => Number(a) - Number(b));
         if (paramIndexes.length === 0) {
             throw new common_1.BadRequestException('templateParamMap es requerido');
         }
+        // Arma el texto completo de la plantilla con las variables ya resueltas, para que
+        // el chat muestre lo que realmente recibió el cliente y no solo un placeholder.
+        const renderTemplateBody = (values) => {
+            if (!templateBody)
+                return null;
+            let rendered = templateBody;
+            paramIndexes.forEach((idx, i) => {
+                rendered = rendered.split(`{{${idx}}}`).join(values[i] ?? '');
+            });
+            return rendered;
+        };
         const campaignId = String(body.campaignId || `bulk_${Date.now()}`);
         const campaignName = String(body.campaignName || 'Campaña').trim() || 'Campaña';
         const campaignCode = String(body.campaignCode || campaignId).trim() || campaignId;
@@ -157,10 +186,11 @@ let MessagesBulkController = class MessagesBulkController {
                 });
                 results.push({ to, status: 'sent', sid: res.sid });
                 // 4. Registrar mensaje en la conversación
+                const resolvedContent = renderTemplateBody(variablesToSend) || `Plantilla enviada (${contentSid}): ${variablesToSend.join(' | ')}`;
                 await this.messagesService.create({
                     conversation_id: conversation.id,
                     sender_type: 'agent',
-                    content: `Plantilla enviada (${contentSid}): ${variablesToSend.join(' | ')}`,
+                    content: resolvedContent,
                     message_type: 'text',
                     is_from_whatsapp: false,
                     whatsapp_message_id: res.sid,
@@ -178,8 +208,42 @@ let MessagesBulkController = class MessagesBulkController {
                     },
                     created_at: new Date(),
                 });
+                // Bitácora propia: sobrevive a que luego se borre la conversación o el contacto.
+                await this.logRecipient({
+                    tenant_id: req?.user?.tenantId,
+                    campaign_id: campaignId,
+                    campaign_code: campaignCode,
+                    campaign_name: campaignName,
+                    template_sid: contentSid,
+                    template_name: templateName || null,
+                    contact_id: contact.id,
+                    conversation_id: conversation.id,
+                    contact_name: contact.name || null,
+                    phone_number: to,
+                    status: 'sent',
+                    message_sid: res.sid,
+                    content: resolvedContent,
+                });
             }
             catch (err) {
+                // Los fallos por contacto solo viajaban en la respuesta: sin rastro en los logs
+                // del servidor no había forma de diagnosticar una campaña que "se envió" pero no
+                // quedó registrada. Se loguea con el código de campaña para poder correlacionar.
+                console.error(`[bulk][${campaignCode}] Falló el contacto ${to || '(sin número)'}: ${err?.message}`, err?.stack);
+                // Un fallo también deja constancia: antes el destinatario desaparecía del detalle
+                // y la campaña decía "N fallidos" sin poder decir quiénes ni por qué.
+                await this.logRecipient({
+                    tenant_id: req?.user?.tenantId,
+                    campaign_id: campaignId,
+                    campaign_code: campaignCode,
+                    campaign_name: campaignName,
+                    template_sid: contentSid,
+                    template_name: templateName || null,
+                    contact_name: String(row.CLIENTE || row.nombre || '') || null,
+                    phone_number: to || null,
+                    status: 'failed',
+                    error: String(err?.message || 'Error desconocido'),
+                });
                 results.push({ to, status: 'error', error: err.message });
             }
         }
@@ -272,9 +336,11 @@ exports.MessagesBulkController = MessagesBulkController = __decorate([
     __param(1, (0, common_1.Inject)(contacts_service_1.ContactsService)),
     __param(2, (0, common_1.Inject)(conversations_service_1.ConversationsService)),
     __param(3, (0, common_1.Inject)(messages_service_1.MessagesService)),
+    __param(4, (0, typeorm_1.InjectRepository)(campaign_recipient_entity_1.CampaignRecipient)),
     __metadata("design:paramtypes", [twilio_service_1.TwilioService,
         contacts_service_1.ContactsService,
         conversations_service_1.ConversationsService,
-        messages_service_1.MessagesService])
+        messages_service_1.MessagesService,
+        typeorm_2.Repository])
 ], MessagesBulkController);
 //# sourceMappingURL=messages.bulk.controller.js.map

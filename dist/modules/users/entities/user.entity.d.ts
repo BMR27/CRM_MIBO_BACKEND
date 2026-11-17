@@ -15,6 +15,8 @@ export declare class User {
     avatar_url: string;
     status: 'available' | 'busy' | 'offline';
     is_platform_admin: boolean;
+    last_login_at: Date | null;
+    last_login_ip: string | null;
     created_at: Date;
     updated_at: Date;
     assigned_conversations: Conversation[];
