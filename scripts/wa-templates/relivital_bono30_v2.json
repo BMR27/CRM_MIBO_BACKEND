@@ -1,0 +1,25 @@
+{
+  "friendly_name": "relivital_bono30_v2",
+  "language": "pl",
+  "category": "MARKETING",
+  "variables": { "1": "Natalia" },
+  "types": {
+    "whatsapp/card": {
+      "media": [
+        "https://crmmibobackend-production.up.railway.app/api/media-assets/ca8b9167-a8ff-47aa-b712-08c9d7bba5b5.jpg"
+      ],
+      "body": "Droga {{1}}, dziękujemy, że wybrałaś RELIVITAL 💛\nJako nasza klientka masz 30 zł na swoim koncie. Wykorzystasz je do 30.11 przy zamówieniu od 100 zł — wpisz w koszyku kod ZNIZKA30.\n\nTwój krem na dzień RELIVITAL to świetna podstawa. Jesienią skóra potrzebuje więcej nawilżenia i troski, dlatego przygotowaliśmy dla Ciebie 3 nowości:\n🌙 Anti-age Night Cream — odżywia skórę nocą, rano wygląda na gładszą\n💧 Double Hydration Boost Gel + HA — natychmiast nawilża i wygładza\n👁 Brightening Eye Cream — mniej widoczne cienie i opuchnięcia pod oczami\n\n30 zł wykorzystasz na nowości albo na kolejne opakowanie swojego kremu na dzień.\n\n🎁 Wybierz pełny kurs pielęgnacji i odbierz dodatkowy rabat −20% na zestaw 👇",
+      "actions": [
+        {
+          "type": "COPY_CODE",
+          "code": "ZNIZKA30"
+        },
+        {
+          "type": "URL",
+          "title": "Odbieram rabat 30 zł",
+          "url": "https://relivital.pl/catalog"
+        }
+      ]
+    }
+  }
+}

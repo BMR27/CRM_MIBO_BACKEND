@@ -38,6 +38,10 @@ let TwilioService = class TwilioService {
             // Plantilla con header de imagen (bono de 30 zł). Pendiente de aprobación de
             // WhatsApp al crearla — los envíos fallarán hasta que Meta la apruebe.
             { name: 'relivital_bono30_v1', sid: 'HXcd993f395dac137dec02e68505f8074c' },
+            // v2: mismo bono de 30 zł, pero como whatsapp/card con dos botones — uno que copia
+            // el código ZNIZKA30 al portapapeles y otro que lleva al catálogo. Pendiente de
+            // aprobación de WhatsApp al crearla: los envíos fallarán hasta que Meta la apruebe.
+            { name: 'relivital_bono30_v2', sid: 'HX51fef263183df3843df860d8e7c47b0e' },
         ];
     }
     /**
