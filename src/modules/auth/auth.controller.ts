@@ -13,6 +13,18 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { PlatformAdminGuard } from '../../common/auth/platform-admin.guard';
 import * as bcrypt from 'bcryptjs';
 
+// La IP real llega en el header que pone el proxy (Railway); el primer valor de
+// x-forwarded-for es el cliente y el resto son los saltos intermedios.
+function getRequestIp(req?: any): string | null {
+  const forwarded = String(req?.headers?.['x-forwarded-for'] || '').trim();
+  if (forwarded) {
+    const first = forwarded.split(',')[0]?.trim();
+    if (first) return first;
+  }
+  const realIp = String(req?.headers?.['x-real-ip'] || '').trim();
+  return realIp || req?.ip || null;
+}
+
 @ApiTags('Auth - Autenticación')
 @Controller('auth')
 export class AuthController {
@@ -236,7 +248,7 @@ export class AuthController {
     status: 401,
     description: 'Credenciales inválidas',
   })
-  async login(@Body() body: { email: string; password: string }) {
+  async login(@Body() body: { email: string; password: string }, @Request() req?: any) {
     try {
       const user: User = await this.usersService.findByEmailWithRole(body.email);
       if (!user) {
@@ -247,6 +259,11 @@ export class AuthController {
       if (!isValidPassword) {
         throw new BadRequestException('Email o contraseña inválidos');
       }
+
+      // Queda registrado aquí también (no solo en el login del frontend) para que los
+      // ingresos hechos directo contra la API desde integraciones aparezcan en el
+      // módulo de usuarios de plataforma.
+      await this.usersService.markLogin(user.id, getRequestIp(req));
 
       const token = this.authService.signToken(
         { id: user.id, email: user.email, role: user.role },

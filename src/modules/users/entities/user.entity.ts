@@ -55,6 +55,14 @@ export class User {
   @Column({ type: 'boolean', default: false })
   is_platform_admin: boolean;
 
+  // Último ingreso: lo alimenta el login (ver AuthController.login) y lo consume el
+  // módulo de usuarios de plataforma del super-admin. Ver migración 022.
+  @Column({ type: 'timestamptz', nullable: true })
+  last_login_at: Date | null;
+
+  @Column({ type: 'text', nullable: true })
+  last_login_ip: string | null;
+
   @CreateDateColumn()
   created_at: Date;
 
