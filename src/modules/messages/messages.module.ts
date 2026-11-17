@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Message } from './entities/message.entity';
+import { CampaignRecipient } from './entities/campaign-recipient.entity';
 import { MessagesService } from './messages.service';
 import { MessagesController } from './messages.controller';
 import { MessagesMarkReadService } from './messages.markRead';
@@ -16,7 +17,7 @@ import { TenantsModule } from '../tenants/tenants.module';
 // ...existing code...
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Message]), forwardRef(() => TwilioModule), forwardRef(() => ContactsModule), forwardRef(() => ConversationsModule), TenantsModule],
+  imports: [TypeOrmModule.forFeature([Message, CampaignRecipient]), forwardRef(() => TwilioModule), forwardRef(() => ContactsModule), forwardRef(() => ConversationsModule), TenantsModule],
   providers: [
     MessagesService,
     MessagesMarkReadService,

@@ -8,6 +8,9 @@ import { Controller, Post, UploadedFile, UseInterceptors, Inject, Body, Req, Use
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantFeatureGuard, RequireTenantFeature } from '../../common/tenant/tenant-feature.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { CampaignRecipient } from './entities/campaign-recipient.entity';
 import * as XLSX from 'xlsx';
 import { TwilioService } from '../../twilio/twilio.service';
 import { ContactsService } from '../contacts/contacts.service';
@@ -24,7 +27,23 @@ export class MessagesBulkController {
     @Inject(ContactsService) private readonly contactsService: ContactsService,
     @Inject(ConversationsService) private readonly conversationsService: ConversationsService,
     @Inject(MessagesService) private readonly messagesService: MessagesService,
+    @InjectRepository(CampaignRecipient)
+    private readonly campaignRecipientsRepository: Repository<CampaignRecipient>,
   ) {}
+
+  /**
+   * Deja constancia de un destinatario en la bitácora de la campaña. Nunca debe
+   * interrumpir el envío: si la bitácora falla, se registra en consola y se sigue.
+   */
+  private async logRecipient(data: Partial<CampaignRecipient>) {
+    try {
+      await this.campaignRecipientsRepository.save(
+        this.campaignRecipientsRepository.create(data),
+      );
+    } catch (error: any) {
+      console.error('[bulk] No se pudo registrar el destinatario en la bitácora:', error?.message);
+    }
+  }
 
   @Post('bulk')
   @UseGuards(JwtAuthGuard, TenantFeatureGuard)
@@ -131,6 +150,7 @@ export class MessagesBulkController {
     const templateParamMap: Record<string, string> = body?.templateParamMap || {};
     const templateParamFallbacks: Record<string, string> = body?.templateParamFallbacks || {};
     const templateBody = String(body?.templateBody || '').trim();
+    const templateName = String(body?.templateName || '').trim();
     const paramIndexes = Object.keys(templateParamMap).sort((a, b) => Number(a) - Number(b));
     if (paramIndexes.length === 0) {
       throw new BadRequestException('templateParamMap es requerido');
@@ -226,7 +246,44 @@ export class MessagesBulkController {
           },
           created_at: new Date(),
         });
+        // Bitácora propia: sobrevive a que luego se borre la conversación o el contacto.
+        await this.logRecipient({
+          tenant_id: req?.user?.tenantId,
+          campaign_id: campaignId,
+          campaign_code: campaignCode,
+          campaign_name: campaignName,
+          template_sid: contentSid,
+          template_name: templateName || null,
+          contact_id: contact.id,
+          conversation_id: conversation.id,
+          contact_name: contact.name || null,
+          phone_number: to,
+          status: 'sent',
+          message_sid: res.sid,
+          content: resolvedContent,
+        });
       } catch (err: any) {
+        // Los fallos por contacto solo viajaban en la respuesta: sin rastro en los logs
+        // del servidor no había forma de diagnosticar una campaña que "se envió" pero no
+        // quedó registrada. Se loguea con el código de campaña para poder correlacionar.
+        console.error(
+          `[bulk][${campaignCode}] Falló el contacto ${to || '(sin número)'}: ${err?.message}`,
+          err?.stack,
+        );
+        // Un fallo también deja constancia: antes el destinatario desaparecía del detalle
+        // y la campaña decía "N fallidos" sin poder decir quiénes ni por qué.
+        await this.logRecipient({
+          tenant_id: req?.user?.tenantId,
+          campaign_id: campaignId,
+          campaign_code: campaignCode,
+          campaign_name: campaignName,
+          template_sid: contentSid,
+          template_name: templateName || null,
+          contact_name: String(row.CLIENTE || row.nombre || '') || null,
+          phone_number: to || null,
+          status: 'failed',
+          error: String(err?.message || 'Error desconocido'),
+        });
         results.push({ to, status: 'error', error: err.message });
       }
     }
