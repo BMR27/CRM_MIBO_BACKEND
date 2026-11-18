@@ -21,7 +21,10 @@ let MessagesMarkReadService = class MessagesMarkReadService {
         this.messageRepository = messageRepository;
     }
     async markConversationMessagesAsRead(conversationId) {
-        await this.messageRepository.updateBy({ conversation_id: conversationId, is_read: false }, { is_read: true, read_at: new Date() });
+        await this.messageRepository.updateBy(
+        // Solo los mensajes del contacto: los del agente se marcan como leídos cuando
+        // WhatsApp lo reporta (status callback), no cuando el agente abre la conversación.
+        { conversation_id: conversationId, is_read: false, sender_type: 'contact' }, { is_read: true, read_at: new Date() });
         return { success: true };
     }
 };
