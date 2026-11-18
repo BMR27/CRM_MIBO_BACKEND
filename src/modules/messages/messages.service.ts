@@ -96,6 +96,12 @@ export class MessagesService {
   async updateDeliveryStatus(id: string, status: string, errorCode?: string | null) {
     const message = await this.messageRepository.findOne({ where: { id } });
     if (!message) return null;
+    // Twilio no garantiza el orden de los callbacks: un "delivered" puede llegar después
+    // del "read". No se retrocede de estado (failed/undelivered siempre se registran).
+    const progress = ['accepted', 'queued', 'sending', 'sent', 'delivered', 'read'];
+    const current = progress.indexOf(String(message.metadata?.delivery_status || ''));
+    const incoming = progress.indexOf(status);
+    if (incoming !== -1 && current > incoming) return this.findOne(id);
     const metadata = {
       ...(message.metadata || {}),
       delivery_status: status,
