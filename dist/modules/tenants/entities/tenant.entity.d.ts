@@ -9,6 +9,9 @@ export declare class Tenant {
     legal_name: string;
     status: 'trial' | 'active' | 'suspended' | 'cancelled';
     plan: string;
+    /** Inicio y vencimiento de la suscripción actual. Ver migración 024. */
+    plan_started_at: Date | null;
+    plan_expires_at: Date | null;
     bulk_messaging_enabled: boolean;
     wa_templates_enabled: boolean;
     webhook_url: string | null;
