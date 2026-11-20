@@ -45,6 +45,13 @@ export class Tenant {
   @Column({ type: 'varchar', length: 50, default: 'free' })
   plan: string;
 
+  /** Inicio y vencimiento de la suscripción actual. Ver migración 024. */
+  @Column({ type: 'timestamptz', nullable: true })
+  plan_started_at: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  plan_expires_at: Date | null;
+
   @Column({ type: 'boolean', default: false })
   bulk_messaging_enabled: boolean;
 
